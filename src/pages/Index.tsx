@@ -65,7 +65,6 @@ const Index = () => {
       setActiveId(item.id);
       toast.success("Neuer C-Test erstellt", { id: toastId, description: item.title });
     } catch (e) {
-      console.error(e);
       const msg = e instanceof Error ? e.message : "Generierung fehlgeschlagen";
       toast.error("KI-Generierung fehlgeschlagen", { id: toastId, description: msg });
     } finally {

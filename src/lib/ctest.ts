@@ -3,16 +3,20 @@
 // Truncation: if word length is even -> keep first half, hide second half.
 // If odd -> keep floor(n/2), hide ceil(n/2)  (i.e. hide MORE than half).
 // Examples: Hase(4)->Ha + se(2). Apfel(5)->Ap + fel(3). Deutschland(11)->Deuts + chland(6). ist(3)->i + st(2).
+// Each truncatable word becomes exactly one token: static prefix + one gap (suffix), never multiple gaps per word.
 
 export type Token =
   | { type: "text"; value: string }
   | {
-      type: "gap";
-      id: string;
-      prefix: string;
-      answer: string; // hidden suffix (lowercased for comparison done case-insensitively)
-      original: string; // original whole word
-    };
+    type: "gap";
+    id: string;
+    prefix: string;
+    answer: string; // hidden suffix; validation is exact string equality
+    original: string; // original whole word
+  };
+
+// Letters-only words, including hyphenated compounds (e.g. Anna-Lena); NFC-normalized input avoids umlaut splits.
+const WORD_LIKE = /^[\p{L}]+(?:-[\p{L}]+)*$/u;
 
 // Split text into sentences while preserving terminators.
 function splitSentences(text: string): string[] {
@@ -22,12 +26,12 @@ function splitSentences(text: string): string[] {
 
 // Tokenize a sentence into word/non-word pieces, preserving spaces & punctuation.
 function tokenize(sentence: string): string[] {
-  // Split on word boundaries but keep separators. Words include German letters.
-  return sentence.match(/[A-Za-zÄÖÜäöüß]+|[^A-Za-zÄÖÜäöüß]+/g) ?? [];
+  const raw = sentence.match(/[\p{L}]+(?:-[\p{L}]+)*|[^\p{L}]+/gu) ?? [];
+  return raw.filter((p) => p.length > 0);
 }
 
 function isWord(piece: string): boolean {
-  return /^[A-Za-zÄÖÜäöüß]+$/.test(piece);
+  return WORD_LIKE.test(piece);
 }
 
 // Returns how many letters to KEEP at the start of a word (the visible prefix).
@@ -38,7 +42,7 @@ export function keepCount(word: string): number {
 }
 
 export function buildCTest(rawText: string): Token[] {
-  const text = rawText.replace(/\s+/g, " ").trim();
+  const text = rawText.normalize("NFC").replace(/\s+/g, " ").trim();
   if (!text) return [];
 
   const sentences = splitSentences(text);
@@ -52,7 +56,7 @@ export function buildCTest(rawText: string): Token[] {
 
     pieces.forEach((piece) => {
       if (!isWord(piece) || isFirstSentence) {
-        tokens.push({ type: "text", value: piece });
+        if (piece.length > 0) tokens.push({ type: "text", value: piece });
         return;
       }
 

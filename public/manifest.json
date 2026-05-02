@@ -1,0 +1,17 @@
+{
+  "name": "C-Test Trainer",
+  "short_name": "C-Test",
+  "description": "Deutsch-C-Tests für die Studienkolleg-Aufnahmeprüfung üben.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

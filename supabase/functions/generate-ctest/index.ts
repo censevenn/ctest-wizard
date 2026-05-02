@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const apiKey = Deno.env.get("AI_GATEWAY_API_KEY") ?? Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) throw new Error("AI_GATEWAY_API_KEY is not configured");
 
     const body = await req.json().catch(() => ({}));
     const requestedLevel: string = body?.level === "C1" ? "C1" : body?.level === "B2" ? "B2" : Math.random() < 0.5 ? "B2" : "C1";
@@ -41,14 +41,18 @@ Anforderungen:
 - Der ERSTE Satz ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
 - KEINE Aufzählungen, KEINE Überschriften innerhalb des Texts, KEINE Klammern, KEINE Anführungszeichen, keine Emojis.
 - Nur normale Satzzeichen: . , ; : ? !
+- Generate a coherent German text. Ensure each word is correctly spelled according to Duden. Do not include any special characters or formatting inside words that could break the C-Test parsing logic.
 - Gib das Ergebnis ausschließlich als JSON via Tool-Call zurück.`;
 
     const user = `Schreibe einen C-Test-Text zum Thema: "${topic}". Niveau ${requestedLevel}.`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const gatewayUrl =
+      Deno.env.get("AI_GATEWAY_URL") ?? "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+    const aiResp = await fetch(gatewayUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

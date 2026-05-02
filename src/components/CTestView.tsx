@@ -48,15 +48,14 @@ export function CTestView({ title, level, topic, text, onNewText }: CTestViewPro
     };
   }, [hintActive]);
 
-  const filledCount = gaps.filter((g) => (answers[g.id] ?? "").length === g.answer.length).length;
+  const filledCount = gaps.filter((g) => (answers[g.id] ?? "").trim().length > 0).length;
   const progress = gaps.length === 0 ? 0 : Math.round((filledCount / gaps.length) * 100);
 
   const correctCount = gaps.filter((g) => statuses[g.id] === "correct").length;
   const checked = Object.values(statuses).some((s) => s === "correct" || s === "incorrect");
 
-  const handleChange = (id: string, value: string, max: number) => {
-    const sliced = value.slice(0, max);
-    setAnswers((a) => ({ ...a, [id]: sliced }));
+  const handleChange = (id: string, value: string) => {
+    setAnswers((a) => ({ ...a, [id]: value }));
     setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
     // No auto-advance: user navigates manually with Tab/Click.
   };
@@ -64,11 +63,11 @@ export function CTestView({ title, level, topic, text, onNewText }: CTestViewPro
   const checkAnswers = () => {
     const next: Record<string, Status> = {};
     gaps.forEach((g) => {
-      const v = (answers[g.id] ?? "").trim();
+      const v = answers[g.id] ?? "";
       if (v.length === 0) {
         next[g.id] = "idle";
       } else {
-        next[g.id] = v.toLowerCase() === g.answer.toLowerCase() ? "correct" : "incorrect";
+        next[g.id] = v === g.answer ? "correct" : "incorrect";
       }
     });
     setStatuses(next);
@@ -187,8 +186,8 @@ export function CTestView({ title, level, topic, text, onNewText }: CTestViewPro
           if (tok.type === "text") return <span key={i}>{tok.value}</span>;
           const status = statuses[tok.id] ?? "idle";
           const value = answers[tok.id] ?? "";
-          // Fixed width based on answer length so layout doesn't jump.
-          const widthCh = tok.answer.length + 1.2;
+          // Visual width from expected suffix length; grows if the user types longer (no maxLength).
+          const widthCh = Math.max(tok.answer.length, value.length) + 1.25;
           const showHint = hintActive && focusedId === tok.id;
           return (
             <span
@@ -197,19 +196,18 @@ export function CTestView({ title, level, topic, text, onNewText }: CTestViewPro
             >
               <span className="font-display">{tok.prefix}</span>
               <span
-                className="relative inline-block"
-                style={{ width: `${widthCh}ch` }}
+                className="relative inline-block align-baseline"
+                style={{ minWidth: `${tok.answer.length + 1.25}ch`, width: `${widthCh}ch` }}
               >
                 <input
                   ref={(el) => (inputRefs.current[tok.id] = el)}
                   type="text"
                   value={value}
-                  maxLength={tok.answer.length}
-                  onChange={(e) => handleChange(tok.id, e.target.value, tok.answer.length)}
+                  onChange={(e) => handleChange(tok.id, e.target.value)}
                   onFocus={() => setFocusedId(tok.id)}
                   onBlur={() => setFocusedId((cur) => (cur === tok.id ? null : cur))}
                   aria-label={`Fehlende Buchstaben für ${tok.prefix}…`}
-                  className={cn("ctest-input font-sans text-base w-full", status)}
+                  className={cn("ctest-input font-sans text-base w-full max-w-none box-border", status)}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
