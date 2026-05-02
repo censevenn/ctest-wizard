@@ -1,16 +1,78 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useMemo, useState } from "react";
+import { Sidebar } from "@/components/Sidebar";
+import { CTestView } from "@/components/CTestView";
+import { CustomTextEditor } from "@/components/CustomTextEditor";
+import { sampleTexts } from "@/data/sampleTexts";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [activeId, setActiveId] = useState<string>(sampleTexts[0].id);
+  const [customText, setCustomText] = useState<string>("");
+  const [customTitle, setCustomTitle] = useState<string>("");
+  const [customMode, setCustomMode] = useState<"editor" | "test">("editor");
+
+  const isCustom = activeId === "custom";
+
+  const active = useMemo(
+    () => sampleTexts.find((t) => t.id === activeId),
+    [activeId]
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      <Sidebar
+        texts={sampleTexts}
+        activeId={activeId}
+        customTitle={customTitle}
+        onSelect={(id) => setActiveId(id)}
+        onCustom={() => {
+          setActiveId("custom");
+          setCustomMode(customText ? "test" : "editor");
+        }}
+      />
+
+      <main className="flex-1 px-5 py-8 md:px-10 md:py-12 max-w-5xl mx-auto w-full">
+        {!isCustom && active && (
+          <CTestView
+            key={active.id}
+            title={active.title}
+            level={active.level}
+            topic={active.topic}
+            text={active.text}
+          />
+        )}
+
+        {isCustom && customMode === "editor" && (
+          <CustomTextEditor
+            initialTitle={customTitle}
+            initialText={customText}
+            onApply={(title, text) => {
+              setCustomTitle(title);
+              setCustomText(text);
+              setCustomMode("test");
+            }}
+          />
+        )}
+
+        {isCustom && customMode === "test" && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setCustomMode("editor")}
+              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4"
+            >
+              ← Text bearbeiten
+            </button>
+            <CTestView
+              key={`custom-${customTitle}-${customText.length}`}
+              title={customTitle || "Eigener Text"}
+              level="Custom"
+              topic="Eigener Text"
+              text={customText}
+            />
+          </div>
+        )}
+      </main>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
