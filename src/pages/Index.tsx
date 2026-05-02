@@ -38,6 +38,12 @@ const Index = () => {
             level={active.level}
             topic={active.topic}
             text={active.text}
+            onNewText={() => {
+              setCustomText("");
+              setCustomTitle("");
+              setCustomMode("editor");
+              setActiveId("custom");
+            }}
           />
         )}
 
