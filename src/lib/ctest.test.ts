@@ -1,5 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { buildCTest, keepCount } from "./ctest";
+import { buildCTest, keepCount, splitWordsAndNonWords } from "./ctest";
+
+describe("splitWordsAndNonWords", () => {
+  it("splits on listed punctuation and whitespace without fragmenting words", () => {
+    expect(splitWordsAndNonWords("Hallo, Welt!")).toEqual(["Hallo", ",", " ", "Welt", "!"]);
+  });
+
+  it("keeps hyphenated compounds as a single word token", () => {
+    expect(splitWordsAndNonWords("sozial-verträglich und gut.")).toEqual([
+      "sozial-verträglich",
+      " ",
+      "und",
+      " ",
+      "gut",
+      ".",
+    ]);
+  });
+});
 
 describe("buildCTest", () => {
   it("yields at most one gap per logical word (Unicode letters + hyphens)", () => {
@@ -27,8 +44,22 @@ describe("buildCTest", () => {
     expect(hyphenGap?.type === "gap" && hyphenGap.original).toBe("Mehr-Test-Wort");
     if (hyphenGap && hyphenGap.type === "gap") {
       const k = keepCount(hyphenGap.original);
+      expect(k).toBe(Math.ceil(hyphenGap.original.length / 2));
       expect(hyphenGap.prefix).toBe(hyphenGap.original.slice(0, k));
       expect(hyphenGap.answer).toBe(hyphenGap.original.slice(k));
+      expect(hyphenGap.prefix.length + hyphenGap.answer.length).toBe(hyphenGap.original.length);
+    }
+  });
+
+  it("uses ceil/2 visible prefix and one gap only (odd length example)", () => {
+    const text = "Erster Satz. Apfel Birnen kommen dran.";
+    const tokens = buildCTest(text);
+    const birnen = tokens.find((t) => t.type === "gap" && t.original === "Birnen");
+    expect(birnen?.type).toBe("gap");
+    if (birnen?.type === "gap") {
+      expect(birnen.original).toBe("Birnen");
+      expect(birnen.prefix.length).toBe(Math.ceil("Birnen".length / 2));
+      expect(birnen.answer.length).toBe(Math.floor("Birnen".length / 2));
     }
   });
 
