@@ -32,6 +32,14 @@ describe("buildCTest", () => {
     }
   });
 
+  it("splits on ellipsis without breaking tokens", () => {
+    const text = "Erster Satz komplett. Zweiter Satz endet hier… Dritter Satz läuft weiter.";
+    const tokens = buildCTest(text);
+    const gaps = tokens.filter((t) => t.type === "gap");
+    expect(gaps.length).toBeGreaterThan(0);
+    expect(tokens.some((t) => t.type === "text" && t.value.includes("…"))).toBe(true);
+  });
+
   it("normalizes decomposed umlauts to a single word (no empty fragments)", () => {
     // NFD: f + combining diaeresis — NFC merges to one ä so "fährt" stays one word (not split into multiple gaps).
     const nfd = "Zweiter Satz. f\u0061\u0308hrt schnell und bremst.\n";

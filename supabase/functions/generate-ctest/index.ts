@@ -36,15 +36,18 @@ Deno.serve(async (req) => {
 Anforderungen:
 - Sprache: Deutsch.
 - Niveau: ${requestedLevel}.
-- Länge: 6-9 Sätze, ca. 90-130 Wörter.
+- Erzeuge einen anspruchsvollen akademischen Text (B2/C1), 100–150 Wörter, 6–9 Sätze.
+- Themen bevorzugt: Ethik, Digitalisierung oder Naturwissenschaften/Wissenschaft (weiche thematisch auf "${topic}" ein, falls passend).
+- Perfekte Grammatik und Rechtschreibung (Duden). Keine Listen, keine Stichpunkte, keine Nummerierungen.
 - Inhaltlich kohärent, sachlich-akademischer Stil.
 - Der ERSTE Satz ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
-- KEINE Aufzählungen, KEINE Überschriften innerhalb des Texts, KEINE Klammern, KEINE Anführungszeichen, keine Emojis.
-- Nur normale Satzzeichen: . , ; : ? !
-- Generate a coherent German text. Ensure each word is correctly spelled according to Duden. Do not include any special characters or formatting inside words that could break the C-Test parsing logic.
+- KEINE Aufzählungen, KEINE Überschriften innerhalb des Fließtexts, KEINE Klammern, KEINE Anführungszeichen, keine Emojis.
+- Nur normale Satzzeichen: . , ; : ? ! und ggf. …
+- Verwende nur Buchstaben (inkl. Umlaute/ß), Bindestriche in zusammengesetzten Wörtern sind erlaubt. Keine Sonderzeichen in Wörtern, die den C-Test-Parser stören könnten.
+- Du MUSST immer einen aussagekräftigen Titel liefern (Feld "title"): prägnant, max. 6 Wörter, deutsch.
 - Gib das Ergebnis ausschließlich als JSON via Tool-Call zurück.`;
 
-    const user = `Schreibe einen C-Test-Text zum Thema: "${topic}". Niveau ${requestedLevel}.`;
+    const user = `Schreibe einen C-Test-Text passend zu: "${topic}". Niveau ${requestedLevel}. Titel nicht vergessen.`;
 
     const gatewayUrl =
       Deno.env.get("AI_GATEWAY_URL") ?? "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -118,9 +121,13 @@ Anforderungen:
     }
     const parsed = JSON.parse(argsStr);
 
+    const rawTitle = String(parsed.title ?? "").trim();
+    const title =
+      rawTitle.length > 0 ? rawTitle.slice(0, 80) : `Thema: ${String(parsed.topic ?? topic).slice(0, 60)}`;
+
     return new Response(
       JSON.stringify({
-        title: String(parsed.title ?? topic).slice(0, 80),
+        title,
         topic: String(parsed.topic ?? topic),
         level: parsed.level === "C1" ? "C1" : "B2",
         text: String(parsed.text ?? "").trim(),

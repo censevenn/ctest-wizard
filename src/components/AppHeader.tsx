@@ -1,5 +1,6 @@
-import { Sparkles, PencilLine, Loader2 } from "lucide-react";
+import { Sparkles, PencilLine, Loader2, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface AppHeaderProps {
   onGenerateAI: () => void;
@@ -8,8 +9,10 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onGenerateAI, onCustomText, generating }: AppHeaderProps) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 dark:bg-background/90">
       <div className="flex flex-col gap-3 px-5 md:px-10 py-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -20,6 +23,17 @@ export function AppHeader({ onGenerateAI, onCustomText, generating }: AppHeaderP
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="shrink-0 border-border bg-background/80 dark:bg-card/80"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Hellmodus" : "Dunkelmodus"}
+            aria-label={theme === "dark" ? "Hellmodus aktivieren" : "Dunkelmodus aktivieren"}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           <Button
             onClick={onGenerateAI}
             disabled={generating}

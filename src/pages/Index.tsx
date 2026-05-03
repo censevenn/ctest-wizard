@@ -1,22 +1,67 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { CTestView } from "@/components/CTestView";
+import { CTestView, type CheckCompleteStats } from "@/components/CTestView";
 import { CustomTextEditor } from "@/components/CustomTextEditor";
 import { AppHeader } from "@/components/AppHeader";
 import { sampleTexts } from "@/data/sampleTexts";
 import { getLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
+import {
+  defaultGuestProfile,
+  loadGuestCode,
+  loadGuestProfile,
+  mergeGuestProfileAfterCheck,
+  persistGuestProfile,
+  saveGuestCode,
+  clearGuestCode,
+  isValidGuestCode,
+  type GuestProfile,
+} from "@/lib/guestProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
   const [library, setLibrary] = useState<LibraryItem[]>(() => getLibrary());
   const [activeId, setActiveId] = useState<string>(sampleTexts[0].id);
+  const [guestCode, setGuestCode] = useState<string | null>(() => loadGuestCode());
+  const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(() => {
+    const c = loadGuestCode();
+    return c ? loadGuestProfile(c) : null;
+  });
   const [customText, setCustomText] = useState<string>("");
   const [customTitle, setCustomTitle] = useState<string>("");
   const [customMode, setCustomMode] = useState<"editor" | "test">("editor");
   const [generating, setGenerating] = useState(false);
 
   const refreshLibrary = () => setLibrary(getLibrary());
+
+  const handleGuestLogin = useCallback((code: string) => {
+    if (!isValidGuestCode(code)) return;
+    saveGuestCode(code);
+    setGuestCode(code);
+    setGuestProfile(loadGuestProfile(code));
+  }, []);
+
+  const handleGuestLogout = useCallback(() => {
+    clearGuestCode();
+    setGuestCode(null);
+    setGuestProfile(null);
+  }, []);
+
+  const handleCheckComplete = useCallback(
+    (stats: CheckCompleteStats) => {
+      const code = guestCode;
+      if (!code) return;
+      const prev = loadGuestProfile(code);
+      const next = mergeGuestProfileAfterCheck(prev, {
+        accuracyPercent: stats.accuracyPercent,
+        allGapsFilled: stats.allGapsFilled,
+        durationSeconds: stats.durationSeconds,
+      });
+      persistGuestProfile(code, next);
+      setGuestProfile(next);
+    },
+    [guestCode]
+  );
 
   const isCustom = activeId === "custom";
 
@@ -103,7 +148,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+    <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
       <Sidebar
         texts={sampleTexts}
         library={library}
@@ -113,6 +158,10 @@ const Index = () => {
         onSelectLibrary={(id) => setActiveId(id)}
         onCustom={openCustomEditor}
         onDeleteLibrary={handleDeleteLibrary}
+        guestCode={guestCode}
+        guestProfile={guestCode ? (guestProfile ?? defaultGuestProfile()) : null}
+        onGuestLogin={handleGuestLogin}
+        onGuestLogout={handleGuestLogout}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -126,22 +175,26 @@ const Index = () => {
           {!isCustom && activeLibrary && (
             <CTestView
               key={activeLibrary.id}
+              exerciseId={activeLibrary.id}
               title={activeLibrary.title}
               level={activeLibrary.level}
               topic={activeLibrary.topic}
               text={activeLibrary.text}
               onNewText={openNewCustomEditor}
+              onCheckComplete={handleCheckComplete}
             />
           )}
 
           {!isCustom && !activeLibrary && activeSample && (
             <CTestView
               key={activeSample.id}
+              exerciseId={activeSample.id}
               title={activeSample.title}
               level={activeSample.level}
               topic={activeSample.topic}
               text={activeSample.text}
               onNewText={openNewCustomEditor}
+              onCheckComplete={handleCheckComplete}
             />
           )}
 
@@ -163,11 +216,13 @@ const Index = () => {
               </button>
               <CTestView
                 key={`custom-${customTitle}-${customText.length}`}
+                exerciseId={`custom-${customTitle}-${customText.length}`}
                 title={customTitle || "Eigener Text"}
                 level="Custom"
                 topic="Eigener Text"
                 text={customText}
                 onNewText={openNewCustomEditor}
+                onCheckComplete={handleCheckComplete}
               />
             </div>
           )}

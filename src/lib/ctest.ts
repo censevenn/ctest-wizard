@@ -15,18 +15,25 @@ export type Token =
     original: string; // original whole word
   };
 
-// Letters-only words, including hyphenated compounds (e.g. Anna-Lena); NFC-normalized input avoids umlaut splits.
-const WORD_LIKE = /^[\p{L}]+(?:-[\p{L}]+)*$/u;
+// Letters + combining marks; hyphenated compounds (e.g. Mehr-Test-Wort); NFC avoids decomposed umlaut splits.
+const WORD_LIKE = /^[\p{L}\p{M}]+(?:[-'][\p{L}\p{M}]+)*$/u;
 
-// Split text into sentences while preserving terminators.
-function splitSentences(text: string): string[] {
-  const matches = text.match(/[^.!?]+[.!?]+["»"]?|\S+$/g);
-  return matches ? matches.map((s) => s.trim()).filter(Boolean) : [text];
+function normalizeCtestInput(text: string): string {
+  return text.normalize("NFC").replace(/\u200B/g, "").replace(/\s+/g, " ").trim();
 }
 
-// Tokenize a sentence into word/non-word pieces, preserving spaces & punctuation.
+// Split text into sentences while preserving terminators (supports … and typical closing quotes).
+function splitSentences(text: string): string[] {
+  const t = normalizeCtestInput(text);
+  if (!t) return [];
+  const matches = t.match(/[^.!?…]+[.!?…]+["»”'']?|\S+$/gu);
+  return matches ? matches.map((s) => s.trim()).filter(Boolean) : [t];
+}
+
+// Tokenize a sentence into word/non-word pieces, preserving spaces & punctuation attached to words.
 function tokenize(sentence: string): string[] {
-  const raw = sentence.match(/[\p{L}]+(?:-[\p{L}]+)*|[^\p{L}]+/gu) ?? [];
+  const raw =
+    sentence.match(/[\p{L}\p{M}]+(?:[-'][\p{L}\p{M}]+)*|[^\p{L}\p{M}]+/gu) ?? [];
   return raw.filter((p) => p.length > 0);
 }
 
@@ -42,7 +49,7 @@ export function keepCount(word: string): number {
 }
 
 export function buildCTest(rawText: string): Token[] {
-  const text = rawText.normalize("NFC").replace(/\s+/g, " ").trim();
+  const text = normalizeCtestInput(rawText);
   if (!text) return [];
 
   const sentences = splitSentences(text);

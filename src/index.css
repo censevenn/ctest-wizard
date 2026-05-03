@@ -70,6 +70,15 @@
     --border: 220 25% 20%;
     --input: 220 25% 20%;
     --ring: 32 90% 55%;
+
+    --sidebar-background: 220 35% 6%;
+    --sidebar-foreground: 40 25% 92%;
+    --sidebar-primary: 32 90% 52%;
+    --sidebar-primary-foreground: 220 30% 12%;
+    --sidebar-accent: 220 28% 14%;
+    --sidebar-accent-foreground: 40 25% 96%;
+    --sidebar-border: 220 28% 14%;
+    --sidebar-ring: 32 90% 52%;
   }
 }
 
@@ -109,5 +118,11 @@
   }
   .ctest-input.revealed {
     @apply border-accent bg-accent/15 text-accent-foreground;
+  }
+  .ctest-input.user-mirror-wrong {
+    @apply border-destructive/70 bg-destructive/20 text-foreground;
+  }
+  .ctest-input.user-mirror-ok {
+    @apply border-[hsl(var(--success)/0.55)] bg-[hsl(var(--success)/0.14)] text-foreground;
   }
 }

@@ -1,7 +1,17 @@
-import { BookOpen, GraduationCap, PencilLine, Sparkles, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, GraduationCap, PencilLine, Sparkles, Trash2, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SampleText } from "@/data/sampleTexts";
 import type { LibraryItem } from "@/lib/library";
+import type { GuestProfile } from "@/lib/guestProfile";
+import {
+  averageAccuracyPercent,
+  averageCompletionSeconds,
+  isValidGuestCode,
+  normalizeGuestCode,
+} from "@/lib/guestProfile";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SidebarProps {
   texts: SampleText[];
@@ -12,6 +22,10 @@ interface SidebarProps {
   onSelectLibrary: (id: string) => void;
   onCustom: () => void;
   onDeleteLibrary: (id: string) => void;
+  guestCode: string | null;
+  guestProfile: GuestProfile | null;
+  onGuestLogin: (code: string) => void;
+  onGuestLogout: () => void;
 }
 
 export function Sidebar({
@@ -23,7 +37,13 @@ export function Sidebar({
   onSelectLibrary,
   onCustom,
   onDeleteLibrary,
+  guestCode,
+  guestProfile,
+  onGuestLogin,
+  onGuestLogout,
 }: SidebarProps) {
+  const [guestDraft, setGuestDraft] = useState("");
+
   const grouped = {
     B2: texts.filter((t) => t.level === "B2"),
     C1: texts.filter((t) => t.level === "C1"),
@@ -168,6 +188,90 @@ export function Sidebar({
           </button>
         </div>
       </nav>
+
+      <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
+        <div className="px-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 inline-flex items-center gap-1.5">
+          <User className="h-3 w-3" />
+          Gast-Profil
+        </div>
+        {guestCode && guestProfile ? (
+          <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/40 px-3 py-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sidebar-foreground/70">Code</span>
+              <span className="font-mono font-semibold tracking-widest text-sidebar-primary-foreground bg-sidebar-primary px-2 py-0.5 rounded">
+                {guestCode}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sidebar-foreground/85">
+              <div>
+                <div className="text-[10px] uppercase text-sidebar-foreground/50">Texte</div>
+                <div className="font-medium tabular-nums">{guestProfile.textsCompleted}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-sidebar-foreground/50">Ø Genauigkeit</div>
+                <div className="font-medium tabular-nums">
+                  {averageAccuracyPercent(guestProfile) != null
+                    ? `${Math.round(averageAccuracyPercent(guestProfile)!)}%`
+                    : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-sidebar-foreground/50">Bestzeit</div>
+                <div className="font-medium tabular-nums">
+                  {guestProfile.bestTimeSeconds != null
+                    ? `${guestProfile.bestTimeSeconds}s`
+                    : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-sidebar-foreground/50">Ø Zeit</div>
+                <div className="font-medium tabular-nums">
+                  {averageCompletionSeconds(guestProfile) != null
+                    ? `${Math.round(averageCompletionSeconds(guestProfile)!)}s`
+                    : "—"}
+                </div>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full h-8 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              onClick={onGuestLogout}
+            >
+              <LogOut className="h-3.5 w-3.5 mr-1" />
+              Gast abmelden
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-sidebar-border px-3 py-3 space-y-2">
+            <p className="text-[11px] text-sidebar-foreground/65 leading-snug">
+              6-stelliger Code zum Speichern deines Fortschritts (Timer und Genauigkeit).
+            </p>
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="z. B. 123456"
+              value={guestDraft}
+              onChange={(e) => setGuestDraft(normalizeGuestCode(e.target.value))}
+              className="h-9 font-mono tracking-widest bg-sidebar-accent/30 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/40"
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="w-full h-9 bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+              disabled={!isValidGuestCode(guestDraft)}
+              onClick={() => {
+                onGuestLogin(guestDraft);
+                setGuestDraft("");
+              }}
+            >
+              Gast-Zugang aktivieren
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="px-6 py-4 border-t border-sidebar-border text-xs text-sidebar-foreground/55">
         Tipp: Mit <kbd className="px-1.5 py-0.5 rounded bg-sidebar-accent text-sidebar-accent-foreground text-[10px]">Tab</kbd> springst du zur nächsten Lücke.
