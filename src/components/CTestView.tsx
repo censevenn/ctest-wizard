@@ -138,7 +138,7 @@ export function CTestView({
 
   useEffect(() => {
     if (!dictAnchor) return;
-    const close = (e: MouseEvent) => {
+    const close = (e: globalThis.MouseEvent) => {
       const t = e.target as Node;
       const el = document.getElementById("ctest-dict-popover");
       if (el?.contains(t)) return;
