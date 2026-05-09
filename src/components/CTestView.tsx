@@ -593,6 +593,49 @@ export function CTestView({
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
                     </span>
                   )}
+                  {showAltHint && (
+                    <span
+                      role="tooltip"
+                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-primary/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
+                    >
+                      Tipp: {tok.answer.charAt(0)}…
+                      <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-primary/40 bg-popover" />
+                    </span>
+                  )}
+                  {showExplain && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void requestExplanation(tok.id, tok.original, answersAtCheck?.[tok.id] ?? "");
+                      }}
+                      title="Erklärung anzeigen"
+                      className="absolute -top-2 -right-2 z-20 inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold shadow"
+                    >
+                      i
+                    </button>
+                  )}
+                  {showExplain && explainOpen === tok.id && (
+                    <span
+                      role="tooltip"
+                      className="absolute left-1/2 -translate-x-1/2 top-7 z-30 w-64 max-w-[16rem] rounded-md border border-border bg-popover px-3 py-2 text-xs font-sans text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-150 whitespace-normal"
+                    >
+                      {explainLoading === tok.id ? (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Erklärung lädt…
+                        </span>
+                      ) : (
+                        explainText[tok.id] ?? "Keine Erklärung verfügbar."
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setExplainOpen(null)}
+                        className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-card border border-border text-[10px] leading-none"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                 </span>
               }
             />
