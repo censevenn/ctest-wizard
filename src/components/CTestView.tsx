@@ -341,29 +341,40 @@ export function CTestView({
               ))}
             </ul>
           )}
-          {!dictLoading && dictResult && !dictResult.ok && (
+          {!dictLoading && dictResult && dictResult.ok === false && (
             <p className="text-xs text-muted-foreground mb-2">{dictResult.message}</p>
           )}
-          {!dictLoading && dictResult && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-border">
-              <a
-                href={dictResult.ok ? dudenSearchUrl(dictResult.word) : dictResult.dudenUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                Duden <ExternalLink className="h-3 w-3" />
-              </a>
-              <a
-                href={dictResult.ok ? leoSearchUrl(dictResult.word) : dictResult.leoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                Leo <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          )}
+          {!dictLoading && dictResult && (() => {
+            const word = dictResult.ok ? dictResult.word : dictResult.word;
+            return (
+              <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-border">
+                <a
+                  href={dudenSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  Duden <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href={leoSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  LEO <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href={verbformenSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  Verbformen (RU) <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            );
+          })()}
         </div>
       )}
 
