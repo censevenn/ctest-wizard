@@ -294,6 +294,8 @@ export function CTestView({
     }
   };
 
+  const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
+
   const startHint = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     e.preventDefault();
     setHintActive(true);
