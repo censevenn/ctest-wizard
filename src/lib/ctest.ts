@@ -42,10 +42,11 @@ function isWord(piece: string): boolean {
 }
 
 // Returns how many letters to KEEP at the start of a word (the visible prefix).
+// Spec: keep first half = Math.ceil(n/2). Even n -> exact half. Odd n -> keep more, hide less.
 export function keepCount(word: string): number {
   const n = word.length;
   if (n <= 1) return n; // don't truncate 1-letter words
-  return Math.floor(n / 2);
+  return Math.ceil(n / 2);
 }
 
 export function buildCTest(rawText: string): Token[] {
