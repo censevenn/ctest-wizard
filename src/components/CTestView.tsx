@@ -275,7 +275,24 @@ export function CTestView({
     if (first) inputRefs.current[first.id]?.focus();
   };
 
-  const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
+  const requestExplanation = async (gapId: string, original: string, userAnswer: string) => {
+    setExplainOpen(gapId);
+    if (explainText[gapId]) return;
+    setExplainLoading(gapId);
+    try {
+      const { data, error } = await supabase.functions.invoke("explain-mistake", {
+        body: { word: original, userInput: (gaps.find((g) => g.id === gapId)?.prefix ?? "") + userAnswer, context: text },
+      });
+      if (error) throw error;
+      const explanation: string = data?.explanation ?? "Keine Erklärung verfügbar.";
+      setExplainText((prev) => ({ ...prev, [gapId]: explanation }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Fehler";
+      setExplainText((prev) => ({ ...prev, [gapId]: `Erklärung fehlgeschlagen: ${msg}` }));
+    } finally {
+      setExplainLoading(null);
+    }
+  };
 
   const startHint = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     e.preventDefault();
