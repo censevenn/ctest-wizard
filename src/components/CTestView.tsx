@@ -173,7 +173,24 @@ export function CTestView({
     if (resultsChecked) return;
     if (!timer.active) timer.start();
     setAnswers((a) => ({ ...a, [id]: value }));
-    setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+    const gap = gaps.find((g) => g.id === id);
+    if (stepByStep && gap) {
+      if (value.length === gap.answer.length) {
+        if (value === gap.answer) {
+          setStatuses((s) => ({ ...s, [id]: "correct" }));
+          // Advance to next gap
+          const idx = gaps.findIndex((g) => g.id === id);
+          const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
+          if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 50);
+        } else {
+          setStatuses((s) => ({ ...s, [id]: "incorrect" }));
+        }
+      } else {
+        setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+      }
+    } else {
+      setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+    }
   };
 
   const checkAnswers = () => {
