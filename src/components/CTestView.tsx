@@ -33,6 +33,7 @@ import {
   type DictionaryResult,
   dudenSearchUrl,
   leoSearchUrl,
+  verbformenSearchUrl,
 } from "@/lib/dictionary";
 
 type Status = "idle" | "correct" | "incorrect" | "revealed";
