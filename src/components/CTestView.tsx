@@ -544,6 +544,9 @@ export function CTestView({
           const value = inputValueForGap(tok);
           const widthCh = Math.max(tok.answer.length, value.length) + 1.25;
           const showHint = hintActive && focusedId === tok.id && !resultsChecked;
+          const showAltHint = altHint && focusedId === tok.id && !resultsChecked && !hintActive;
+          const status = statuses[tok.id];
+          const showExplain = resultsChecked && status === "incorrect";
           const gapLookup = (e: MouseEvent | TouchEvent) => {
             const cx = "clientX" in e ? e.clientX : 0;
             const cy = "clientY" in e ? e.clientY : 0;
