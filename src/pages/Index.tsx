@@ -148,6 +148,10 @@ const Index = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  if (!guestCode) {
+    return <GuestLanding onLogin={handleGuestLogin} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
       <Sidebar
