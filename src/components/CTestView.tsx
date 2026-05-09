@@ -26,6 +26,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useExerciseTimer, formatMs } from "@/hooks/useExerciseTimer";
 import { mapTextToWordSpans } from "@/lib/textWordSpans";
 import {
@@ -33,6 +34,7 @@ import {
   type DictionaryResult,
   dudenSearchUrl,
   leoSearchUrl,
+  verbformenSearchUrl,
 } from "@/lib/dictionary";
 
 type Status = "idle" | "correct" | "incorrect" | "revealed";
@@ -79,6 +81,11 @@ export function CTestView({
   const [resultsChecked, setResultsChecked] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("correct");
   const [answersAtCheck, setAnswersAtCheck] = useState<Record<string, string> | null>(null);
+  const [stepByStep, setStepByStep] = useState(false);
+  const [altHint, setAltHint] = useState(false);
+  const [explainOpen, setExplainOpen] = useState<string | null>(null);
+  const [explainText, setExplainText] = useState<Record<string, string>>({});
+  const [explainLoading, setExplainLoading] = useState<string | null>(null);
 
   const [exercisePaused, setExercisePaused] = useState(false);
   const timer = useExerciseTimer({ paused: exercisePaused });
@@ -117,6 +124,25 @@ export function CTestView({
     };
   }, [hintActive]);
 
+  // Alt key reveals first letter "Tipp" for the focused gap
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Alt") setAltHint(true);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt") setAltHint(false);
+    };
+    const onBlur = () => setAltHint(false);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
   useEffect(() => {
     if (!dictAnchor) {
       setDictResult(null);
@@ -138,7 +164,7 @@ export function CTestView({
 
   useEffect(() => {
     if (!dictAnchor) return;
-    const close = (e: MouseEvent) => {
+    const close = (e: globalThis.MouseEvent) => {
       const t = e.target as Node;
       const el = document.getElementById("ctest-dict-popover");
       if (el?.contains(t)) return;
@@ -167,7 +193,24 @@ export function CTestView({
     if (resultsChecked) return;
     if (!timer.active) timer.start();
     setAnswers((a) => ({ ...a, [id]: value }));
-    setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+    const gap = gaps.find((g) => g.id === id);
+    if (stepByStep && gap) {
+      if (value.length === gap.answer.length) {
+        if (value === gap.answer) {
+          setStatuses((s) => ({ ...s, [id]: "correct" }));
+          // Advance to next gap
+          const idx = gaps.findIndex((g) => g.id === id);
+          const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
+          if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 50);
+        } else {
+          setStatuses((s) => ({ ...s, [id]: "incorrect" }));
+        }
+      } else {
+        setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+      }
+    } else {
+      setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+    }
   };
 
   const checkAnswers = () => {
@@ -231,6 +274,25 @@ export function CTestView({
     timer.reset();
     const first = gaps[0];
     if (first) inputRefs.current[first.id]?.focus();
+  };
+
+  const requestExplanation = async (gapId: string, original: string, userAnswer: string) => {
+    setExplainOpen(gapId);
+    if (explainText[gapId]) return;
+    setExplainLoading(gapId);
+    try {
+      const { data, error } = await supabase.functions.invoke("explain-mistake", {
+        body: { word: original, userInput: (gaps.find((g) => g.id === gapId)?.prefix ?? "") + userAnswer, context: text },
+      });
+      if (error) throw error;
+      const explanation: string = data?.explanation ?? "Keine Erklärung verfügbar.";
+      setExplainText((prev) => ({ ...prev, [gapId]: explanation }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Fehler";
+      setExplainText((prev) => ({ ...prev, [gapId]: `Erklärung fehlgeschlagen: ${msg}` }));
+    } finally {
+      setExplainLoading(null);
+    }
   };
 
   const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
@@ -341,29 +403,40 @@ export function CTestView({
               ))}
             </ul>
           )}
-          {!dictLoading && dictResult && !dictResult.ok && (
+          {!dictLoading && dictResult && dictResult.ok === false && (
             <p className="text-xs text-muted-foreground mb-2">{dictResult.message}</p>
           )}
-          {!dictLoading && dictResult && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-border">
-              <a
-                href={dictResult.ok ? dudenSearchUrl(dictResult.word) : dictResult.dudenUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                Duden <ExternalLink className="h-3 w-3" />
-              </a>
-              <a
-                href={dictResult.ok ? leoSearchUrl(dictResult.word) : dictResult.leoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                Leo <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          )}
+          {!dictLoading && dictResult && (() => {
+            const word = dictResult.ok ? dictResult.word : dictResult.word;
+            return (
+              <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-border">
+                <a
+                  href={dudenSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  Duden <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href={leoSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  LEO <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href={verbformenSearchUrl(word)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  Verbformen (RU) <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -382,8 +455,17 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Alt</kbd> halten zeigt den ersten Buchstaben.
           </p>
+          <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={stepByStep}
+              onChange={(e) => setStepByStep(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary"
+            />
+            Schritt-für-Schritt-Modus (sofortiges Feedback)
+          </label>
         </div>
         <div className="flex flex-wrap gap-2">
           {!resultsChecked ? (
@@ -482,6 +564,9 @@ export function CTestView({
           const value = inputValueForGap(tok);
           const widthCh = Math.max(tok.answer.length, value.length) + 1.25;
           const showHint = hintActive && focusedId === tok.id && !resultsChecked;
+          const showAltHint = altHint && focusedId === tok.id && !resultsChecked && !hintActive;
+          const status = statuses[tok.id];
+          const showExplain = resultsChecked && status === "incorrect";
           const gapLookup = (e: MouseEvent | TouchEvent) => {
             const cx = "clientX" in e ? e.clientX : 0;
             const cy = "clientY" in e ? e.clientY : 0;
@@ -526,6 +611,49 @@ export function CTestView({
                     >
                       {tok.answer}
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
+                    </span>
+                  )}
+                  {showAltHint && (
+                    <span
+                      role="tooltip"
+                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-primary/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
+                    >
+                      Tipp: {tok.answer.charAt(0)}…
+                      <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-primary/40 bg-popover" />
+                    </span>
+                  )}
+                  {showExplain && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void requestExplanation(tok.id, tok.original, answersAtCheck?.[tok.id] ?? "");
+                      }}
+                      title="Erklärung anzeigen"
+                      className="absolute -top-2 -right-2 z-20 inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold shadow"
+                    >
+                      i
+                    </button>
+                  )}
+                  {showExplain && explainOpen === tok.id && (
+                    <span
+                      role="tooltip"
+                      className="absolute left-1/2 -translate-x-1/2 top-7 z-30 w-64 max-w-[16rem] rounded-md border border-border bg-popover px-3 py-2 text-xs font-sans text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-150 whitespace-normal"
+                    >
+                      {explainLoading === tok.id ? (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Erklärung lädt…
+                        </span>
+                      ) : (
+                        explainText[tok.id] ?? "Keine Erklärung verfügbar."
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setExplainOpen(null)}
+                        className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-card border border-border text-[10px] leading-none"
+                      >
+                        ×
+                      </button>
                     </span>
                   )}
                 </span>

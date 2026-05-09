@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { CTestView, type CheckCompleteStats } from "@/components/CTestView";
 import { CustomTextEditor } from "@/components/CustomTextEditor";
 import { AppHeader } from "@/components/AppHeader";
+import { GuestLanding } from "@/components/GuestLanding";
 import { sampleTexts } from "@/data/sampleTexts";
 import { getLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
 import {
@@ -146,6 +147,10 @@ const Index = () => {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  if (!guestCode) {
+    return <GuestLanding onLogin={handleGuestLogin} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">

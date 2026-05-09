@@ -24,7 +24,11 @@ export function dudenSearchUrl(word: string): string {
 }
 
 export function leoSearchUrl(word: string): string {
-  return `https://dict.leo.org/german-english/${encodeWord(word)}`;
+  return `https://dict.leo.org/ende/index_de.html#/search=${encodeWord(word)}`;
+}
+
+export function verbformenSearchUrl(word: string): string {
+  return `https://www.verbformen.ru/suche/?w=${encodeWord(word)}`;
 }
 
 export async function fetchGermanDictionary(word: string): Promise<DictionaryResult> {

@@ -47,7 +47,7 @@ describe("buildCTest", () => {
     const emptyText = tokens.filter((t) => t.type === "text" && t.value === "");
     expect(emptyText.length).toBe(0);
     const gapWords = tokens
-      .filter((t): t is { type: "gap"; original: string } => t.type === "gap")
+      .filter((t): t is Extract<typeof t, { type: "gap" }> => t.type === "gap")
       .map((g) => g.original);
     expect(gapWords).toEqual(["schnell", "bremst"]);
   });
