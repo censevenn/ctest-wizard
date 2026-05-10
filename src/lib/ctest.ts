@@ -17,16 +17,27 @@ function normalize(text: string): string {
   return text.normalize("NFC").replace(/\u200B/g, "");
 }
 
-// A "word" = run of letters / combining marks, allowing internal -, ’, '
-const WORD_CORE = /[\p{L}\p{M}]+(?:[-’'][\p{L}\p{M}]+)*/u;
+const HAS_LETTER = /\p{L}/u;
+
+function isBoundaryPunctuation(char: string): boolean {
+  return /\p{P}/u.test(char) && !/[\-‐‑‒–—―]/u.test(char);
+}
 
 /** Strip leading/trailing punctuation; return [leading, core, trailing]. */
 function peelWord(token: string): [string, string, string] {
-  const m = token.match(WORD_CORE);
-  if (!m) return [token, "", ""];
-  const start = m.index ?? 0;
-  const core = m[0];
-  return [token.slice(0, start), core, token.slice(start + core.length)];
+  const chars = Array.from(token);
+  let start = 0;
+  let end = chars.length;
+
+  while (start < end && isBoundaryPunctuation(chars[start])) start += 1;
+  while (end > start && isBoundaryPunctuation(chars[end - 1])) end -= 1;
+
+  const leading = chars.slice(0, start).join("");
+  const core = chars.slice(start, end).join("");
+  const trailing = chars.slice(end).join("");
+
+  if (!HAS_LETTER.test(core)) return [token, "", ""];
+  return [leading, core, trailing];
 }
 
 /** Detect whether a token (after peeling) closes a sentence. */
@@ -44,7 +55,7 @@ export function buildCTest(rawText: string): Token[] {
   const text = normalize(rawText).trim();
   if (!text) return [];
 
-  // Split on whitespace, keeping the whitespace runs.
+  // Split only on whitespace, keeping the whitespace runs: one non-space token can create at most one gap.
   const parts = text.split(/(\s+)/);
 
   const tokens: Token[] = [];

@@ -565,7 +565,7 @@ export function CTestView({
             );
           }
           const value = inputValueForGap(tok);
-          const widthCh = Math.max(tok.answer.length, value.length) + 1.25;
+          const widthCh = tok.answer.length;
           const showHint = hintActive && focusedId === tok.id && !resultsChecked;
           const showAltHint = altHint && focusedId === tok.id && !resultsChecked && !hintActive;
           const status = statuses[tok.id];
@@ -583,13 +583,13 @@ export function CTestView({
               inputEl={
                 <span
                   className="relative inline-block align-baseline"
-                  style={{ minWidth: `${tok.answer.length + 1.25}ch`, width: `${widthCh}ch` }}
+                  style={{ minWidth: `${widthCh}ch`, width: `${widthCh}ch` }}
                 >
                   <input
                     ref={(el) => (inputRefs.current[tok.id] = el)}
                     type="text"
                     value={value}
-                    onChange={(e) => handleChange(tok.id, e.target.value)}
+                    onChange={(e) => handleChange(tok.id, e.target.value.slice(0, tok.answer.length))}
                     onFocus={() => setFocusedId(tok.id)}
                     onBlur={() => setFocusedId((cur) => (cur === tok.id ? null : cur))}
                     onDoubleClick={(e) => {
@@ -602,10 +602,12 @@ export function CTestView({
                       "ctest-input font-sans text-base w-full max-w-none box-border",
                       inputClassForGap(tok)
                     )}
+                    style={{ width: `${widthCh}ch` }}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
+                    maxLength={tok.answer.length}
                   />
                   {showHint && (
                     <span
@@ -733,7 +735,7 @@ function GapCluster({
       }}
     >
       <span
-        className="cursor-help rounded-sm underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 hover:bg-muted/60 dark:hover:bg-muted/30"
+        className="cursor-help rounded-sm hover:bg-muted/60 dark:hover:bg-muted/30"
         onDoubleClick={(e) => {
           e.stopPropagation();
           onLookup(e.clientX, e.clientY);

@@ -41,7 +41,7 @@ function SelectableWord({
 
   return (
     <span
-      className="cursor-help rounded-sm underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 hover:bg-muted/60 dark:hover:bg-muted/30"
+      className="cursor-help rounded-sm hover:bg-muted/60 dark:hover:bg-muted/30"
       onDoubleClick={(e) => {
         e.preventDefault();
         clearTimer();
