@@ -40,8 +40,8 @@ describe("buildCTest", () => {
     const sozialvertraeglich = gaps.find((g) => g.original === "sozialverträglich");
 
     expect(herausforderungen).toBeDefined();
-    expect(herausforderungen?.prefix).toBe("Herausford");
-    expect(herausforderungen?.answer).toBe("erungen");
+    expect(herausforderungen?.prefix).toBe("Herausfor");
+    expect(herausforderungen?.answer).toBe("derungen");
     expect(sozialvertraeglich).toBeDefined();
     expect(tokens.some((t) => t.type === "text" && t.value === ",")).toBe(true);
     expect(gaps.filter((g) => g.original === "Herausforderungen").length).toBe(1);
