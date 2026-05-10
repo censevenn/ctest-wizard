@@ -124,13 +124,16 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Alt key reveals first letter "Tipp" for the focused gap
+  // Backquote (` / Ё) reveals first letter "Tipp" for the focused gap
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Alt") setAltHint(true);
+      if (e.code === "Backquote") {
+        e.preventDefault();
+        setAltHint(true);
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Alt") setAltHint(false);
+      if (e.code === "Backquote") setAltHint(false);
     };
     const onBlur = () => setAltHint(false);
     window.addEventListener("keydown", onKeyDown);
