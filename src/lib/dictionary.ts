@@ -24,7 +24,7 @@ export function dudenSearchUrl(word: string): string {
 }
 
 export function leoSearchUrl(word: string): string {
-  return `https://dict.leo.org/ende/index_de.html#/search=${encodeWord(word)}`;
+  return `https://dict.leo.org/deru/index_de.html#/search=${encodeWord(word)}`;
 }
 
 export function verbformenSearchUrl(word: string): string {

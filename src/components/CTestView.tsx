@@ -124,13 +124,16 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Alt key reveals first letter "Tipp" for the focused gap
+  // Backquote (` / Ё) reveals first letter "Tipp" for the focused gap
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Alt") setAltHint(true);
+      if (e.code === "Backquote") {
+        e.preventDefault();
+        setAltHint(true);
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Alt") setAltHint(false);
+      if (e.code === "Backquote") setAltHint(false);
     };
     const onBlur = () => setAltHint(false);
     window.addEventListener("keydown", onKeyDown);
@@ -455,7 +458,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Alt</kbd> halten zeigt den ersten Buchstaben.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> halten zeigt den ersten Buchstaben.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
@@ -662,6 +665,39 @@ export function CTestView({
           );
         })}
       </article>
+
+      {!resultsChecked && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 md:bottom-24 z-40 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
+          {["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"].map((ch) => (
+            <button
+              key={ch}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (!focusedId) return;
+                const gap = gaps.find((g) => g.id === focusedId);
+                if (!gap) return;
+                const el = inputRefs.current[focusedId];
+                if (!el) return;
+                const cur = answers[focusedId] ?? "";
+                const start = el.selectionStart ?? cur.length;
+                const end = el.selectionEnd ?? cur.length;
+                const next = (cur.slice(0, start) + ch + cur.slice(end)).slice(0, gap.answer.length);
+                handleChange(focusedId, next);
+                setTimeout(() => {
+                  el.focus();
+                  const pos = Math.min(start + 1, next.length);
+                  el.setSelectionRange(pos, pos);
+                }, 0);
+              }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+              title={`Einfügen: ${ch}`}
+            >
+              {ch}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
