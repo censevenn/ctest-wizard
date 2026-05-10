@@ -32,6 +32,21 @@ describe("buildCTest", () => {
     }
   });
 
+  it("treats each whitespace-delimited token as atomic and keeps trailing punctuation static", () => {
+    const text = "Erster Satz komplett. Alpha Herausforderungen, Beta sozialverträglich.";
+    const tokens = buildCTest(text);
+    const gaps = tokens.filter((t): t is Extract<typeof t, { type: "gap" }> => t.type === "gap");
+    const herausforderungen = gaps.find((g) => g.original === "Herausforderungen");
+    const sozialvertraeglich = gaps.find((g) => g.original === "sozialverträglich");
+
+    expect(herausforderungen).toBeDefined();
+    expect(herausforderungen?.prefix).toBe("Herausford");
+    expect(herausforderungen?.answer).toBe("erungen");
+    expect(sozialvertraeglich).toBeDefined();
+    expect(tokens.some((t) => t.type === "text" && t.value === ",")).toBe(true);
+    expect(gaps.filter((g) => g.original === "Herausforderungen").length).toBe(1);
+  });
+
   it("splits on ellipsis without breaking tokens", () => {
     const text = "Erster Satz komplett. Zweiter Satz endet hier… Dritter Satz läuft weiter.";
     const tokens = buildCTest(text);
