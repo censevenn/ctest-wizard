@@ -82,7 +82,8 @@ export function CTestView({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("correct");
   const [answersAtCheck, setAnswersAtCheck] = useState<Record<string, string> | null>(null);
   const [stepByStep, setStepByStep] = useState(false);
-  const [altHint, setAltHint] = useState(false);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [explainOpen, setExplainOpen] = useState<string | null>(null);
   const [explainText, setExplainText] = useState<Record<string, string>>({});
   const [explainLoading, setExplainLoading] = useState<string | null>(null);
@@ -124,27 +125,41 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Backquote (` / Ё) reveals first letter "Tipp" for the focused gap
+  // Fill the full correct answer into the focused gap with an amber flash.
+  const fillHint = useCallback(
+    (id: string | null) => {
+      if (!id || resultsChecked) return;
+      const gap = gaps.find((g) => g.id === id);
+      if (!gap) return;
+      if (!timer.active) timer.start();
+      setAnswers((a) => ({ ...a, [id]: gap.answer }));
+      setStatuses((s) => ({ ...s, [id]: "revealed" }));
+      setFlashId(id);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashId(null), 700);
+      setTimeout(() => inputRefs.current[id]?.focus(), 0);
+    },
+    [gaps, resultsChecked, timer]
+  );
+
+  // Backquote (` / Ё) reveals the full answer in the focused gap.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Backquote") {
         e.preventDefault();
-        setAltHint(true);
+        const target = e.target as HTMLElement | null;
+        const id =
+          target && target.tagName === "INPUT"
+            ? (target.getAttribute("data-gap-id") ?? focusedId)
+            : focusedId;
+        fillHint(id);
       }
     };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Backquote") setAltHint(false);
-    };
-    const onBlur = () => setAltHint(false);
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", onBlur);
     };
-  }, []);
+  }, [fillHint, focusedId]);
 
   useEffect(() => {
     if (!dictAnchor) {
@@ -484,26 +499,13 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onMouseDown={startHint}
-            onMouseUp={stopHint}
-            onMouseLeave={stopHint}
-            onTouchStart={startHint}
-            onTouchEnd={stopHint}
-            onKeyDown={(e) => {
-              if ((e.key === " " || e.key === "Enter") && !hintActive) {
-                e.preventDefault();
-                setHintActive(true);
-              }
-            }}
-            onKeyUp={(e) => {
-              if (e.key === " " || e.key === "Enter") setHintActive(false);
-            }}
+            onClick={() => fillHint(focusedId)}
             disabled={!focusedGap || resultsChecked}
-            className={cn("gap-2 select-none", hintActive && "ring-2 ring-accent")}
-            title={focusedGap ? "Halten, um den Tipp zu sehen" : "Erst eine Lücke anklicken"}
+            className="gap-2 select-none"
+            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
-            Tipp halten
+            Tipp
           </Button>
           <Button type="button" variant="outline" onClick={showSolution} className="gap-2">
             <Eye className="h-4 w-4" />
@@ -567,7 +569,7 @@ export function CTestView({
           const value = inputValueForGap(tok);
           const widthCh = tok.answer.length;
           const showHint = hintActive && focusedId === tok.id && !resultsChecked;
-          const showAltHint = altHint && focusedId === tok.id && !resultsChecked && !hintActive;
+          const isFlashing = flashId === tok.id;
           const status = statuses[tok.id];
           const showExplain = resultsChecked && status === "incorrect";
           const gapLookup = (e: MouseEvent | TouchEvent) => {
@@ -598,9 +600,11 @@ export function CTestView({
                     }}
                     readOnly={readOnlyInputs}
                     aria-label={`Fehlende Buchstaben für ${tok.prefix}… (${tok.original})`}
+                    data-gap-id={tok.id}
                     className={cn(
-                      "ctest-input font-sans text-base w-full max-w-none box-border",
-                      inputClassForGap(tok)
+                      "ctest-input font-sans text-base w-full max-w-none box-border transition-colors duration-300",
+                      inputClassForGap(tok),
+                      isFlashing && "ring-2 ring-amber-400 bg-amber-100 dark:bg-amber-500/20"
                     )}
                     style={{ width: `${widthCh}ch` }}
                     autoComplete="off"
@@ -616,15 +620,6 @@ export function CTestView({
                     >
                       {tok.answer}
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
-                    </span>
-                  )}
-                  {showAltHint && (
-                    <span
-                      role="tooltip"
-                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-primary/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
-                    >
-                      Tipp: {tok.answer.charAt(0)}…
-                      <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-primary/40 bg-popover" />
                     </span>
                   )}
                   {showExplain && (
@@ -670,7 +665,7 @@ export function CTestView({
 
       {!resultsChecked && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 md:bottom-24 z-40 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-          {["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"].map((ch) => (
+          {["ä", "ö", "ü", "ß"].map((ch) => (
             <button
               key={ch}
               type="button"
