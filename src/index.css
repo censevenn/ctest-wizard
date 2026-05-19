@@ -105,24 +105,27 @@
 @layer components {
   .ctest-input {
     @apply inline-block align-baseline border-0 border-b-2 border-foreground/40
-           bg-transparent px-1 text-center font-medium text-foreground
+           bg-transparent px-1 text-center font-medium
            focus:outline-none focus:border-accent focus:bg-accent/5
            transition-colors rounded-none;
     min-width: 1.5ch;
+    color: #f8fafc !important;
+    caret-color: #f8fafc;
   }
+  .ctest-input::placeholder { color: #cbd5e1 !important; }
   .ctest-input.correct {
-    @apply border-[hsl(var(--success))] bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))];
+    @apply border-[hsl(var(--success))] bg-[hsl(var(--success)/0.35)];
   }
   .ctest-input.incorrect {
-    @apply border-destructive bg-destructive/10 text-destructive;
+    @apply border-destructive bg-destructive/40;
   }
   .ctest-input.revealed {
-    @apply border-accent bg-accent/15 text-accent-foreground;
+    @apply border-accent bg-accent/40;
   }
   .ctest-input.user-mirror-wrong {
-    @apply border-destructive/70 bg-destructive/20 text-foreground;
+    @apply border-destructive/70 bg-destructive/40;
   }
   .ctest-input.user-mirror-ok {
-    @apply border-[hsl(var(--success)/0.55)] bg-[hsl(var(--success)/0.14)] text-foreground;
+    @apply border-[hsl(var(--success)/0.55)] bg-[hsl(var(--success)/0.35)];
   }
 }
