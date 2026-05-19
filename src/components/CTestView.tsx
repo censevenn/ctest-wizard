@@ -600,9 +600,11 @@ export function CTestView({
                     }}
                     readOnly={readOnlyInputs}
                     aria-label={`Fehlende Buchstaben für ${tok.prefix}… (${tok.original})`}
+                    data-gap-id={tok.id}
                     className={cn(
-                      "ctest-input font-sans text-base w-full max-w-none box-border",
-                      inputClassForGap(tok)
+                      "ctest-input font-sans text-base w-full max-w-none box-border transition-colors duration-300",
+                      inputClassForGap(tok),
+                      isFlashing && "ring-2 ring-amber-400 bg-amber-100 dark:bg-amber-500/20"
                     )}
                     style={{ width: `${widthCh}ch` }}
                     autoComplete="off"
