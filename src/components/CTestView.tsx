@@ -499,26 +499,13 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onMouseDown={startHint}
-            onMouseUp={stopHint}
-            onMouseLeave={stopHint}
-            onTouchStart={startHint}
-            onTouchEnd={stopHint}
-            onKeyDown={(e) => {
-              if ((e.key === " " || e.key === "Enter") && !hintActive) {
-                e.preventDefault();
-                setHintActive(true);
-              }
-            }}
-            onKeyUp={(e) => {
-              if (e.key === " " || e.key === "Enter") setHintActive(false);
-            }}
+            onClick={() => fillHint(focusedId)}
             disabled={!focusedGap || resultsChecked}
-            className={cn("gap-2 select-none", hintActive && "ring-2 ring-accent")}
-            title={focusedGap ? "Halten, um den Tipp zu sehen" : "Erst eine Lücke anklicken"}
+            className="gap-2 select-none"
+            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
-            Tipp halten
+            Tipp
           </Button>
           <Button type="button" variant="outline" onClick={showSolution} className="gap-2">
             <Eye className="h-4 w-4" />
