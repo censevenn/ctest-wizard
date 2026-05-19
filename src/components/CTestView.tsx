@@ -82,7 +82,8 @@ export function CTestView({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("correct");
   const [answersAtCheck, setAnswersAtCheck] = useState<Record<string, string> | null>(null);
   const [stepByStep, setStepByStep] = useState(false);
-  const [altHint, setAltHint] = useState(false);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [explainOpen, setExplainOpen] = useState<string | null>(null);
   const [explainText, setExplainText] = useState<Record<string, string>>({});
   const [explainLoading, setExplainLoading] = useState<string | null>(null);
