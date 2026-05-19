@@ -82,8 +82,6 @@ export function CTestView({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("correct");
   const [answersAtCheck, setAnswersAtCheck] = useState<Record<string, string> | null>(null);
   const [stepByStep, setStepByStep] = useState(false);
-  const [flashId, setFlashId] = useState<string | null>(null);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [explainOpen, setExplainOpen] = useState<string | null>(null);
   const [explainText, setExplainText] = useState<Record<string, string>>({});
   const [explainLoading, setExplainLoading] = useState<string | null>(null);
@@ -125,41 +123,27 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Fill the full correct answer into the focused gap with an amber flash.
-  const fillHint = useCallback(
-    (id: string | null) => {
-      if (!id || resultsChecked) return;
-      const gap = gaps.find((g) => g.id === id);
-      if (!gap) return;
-      if (!timer.active) timer.start();
-      setAnswers((a) => ({ ...a, [id]: gap.answer }));
-      setStatuses((s) => ({ ...s, [id]: "revealed" }));
-      setFlashId(id);
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlashId(null), 700);
-      setTimeout(() => inputRefs.current[id]?.focus(), 0);
-    },
-    [gaps, resultsChecked, timer]
-  );
-
-  // Backquote (` / Ё) reveals the full answer in the focused gap.
+  // Backquote (` / Ё) shows the full correct answer in a tooltip while held.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Backquote") {
         e.preventDefault();
-        const target = e.target as HTMLElement | null;
-        const id =
-          target && target.tagName === "INPUT"
-            ? (target.getAttribute("data-gap-id") ?? focusedId)
-            : focusedId;
-        fillHint(id);
+        if (!resultsChecked) setHintActive(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Backquote") {
+        e.preventDefault();
+        setHintActive(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
-  }, [fillHint, focusedId]);
+  }, [resultsChecked]);
 
   useEffect(() => {
     if (!dictAnchor) {
@@ -473,7 +457,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> halten zeigt den ersten Buchstaben.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> halten zeigt die vollständige Lösung als Tooltip an.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
@@ -499,10 +483,15 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => fillHint(focusedId)}
+            onMouseDown={startHint}
+            onMouseUp={stopHint}
+            onMouseLeave={stopHint}
+            onTouchStart={startHint}
+            onTouchEnd={stopHint}
+            onTouchCancel={stopHint}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten: Lösung anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
@@ -569,7 +558,7 @@ export function CTestView({
           const value = inputValueForGap(tok);
           const widthCh = tok.answer.length;
           const showHint = hintActive && focusedId === tok.id && !resultsChecked;
-          const isFlashing = flashId === tok.id;
+          
           const status = statuses[tok.id];
           const showExplain = resultsChecked && status === "incorrect";
           const gapLookup = (e: MouseEvent | TouchEvent) => {
@@ -603,8 +592,7 @@ export function CTestView({
                     data-gap-id={tok.id}
                     className={cn(
                       "ctest-input font-sans text-base w-full max-w-none box-border transition-colors duration-300",
-                      inputClassForGap(tok),
-                      isFlashing && "ring-2 ring-amber-400 bg-amber-100 dark:bg-amber-500/20"
+                      inputClassForGap(tok)
                     )}
                     style={{ width: `${widthCh}ch` }}
                     autoComplete="off"
