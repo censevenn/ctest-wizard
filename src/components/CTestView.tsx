@@ -665,7 +665,7 @@ export function CTestView({
 
       {!resultsChecked && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 md:bottom-24 z-40 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-          {["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"].map((ch) => (
+          {["ä", "ö", "ü", "ß"].map((ch) => (
             <button
               key={ch}
               type="button"
