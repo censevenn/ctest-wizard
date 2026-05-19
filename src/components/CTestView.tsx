@@ -622,15 +622,6 @@ export function CTestView({
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
                     </span>
                   )}
-                  {showAltHint && (
-                    <span
-                      role="tooltip"
-                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-primary/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
-                    >
-                      Tipp: {tok.answer.charAt(0)}…
-                      <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-primary/40 bg-popover" />
-                    </span>
-                  )}
                   {showExplain && (
                     <button
                       type="button"
