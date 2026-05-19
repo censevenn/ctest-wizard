@@ -485,10 +485,15 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => fillHint(focusedId)}
+            onMouseDown={startHint}
+            onMouseUp={stopHint}
+            onMouseLeave={stopHint}
+            onTouchStart={startHint}
+            onTouchEnd={stopHint}
+            onTouchCancel={stopHint}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten: Lösung anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
