@@ -125,27 +125,41 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Backquote (` / Ё) reveals first letter "Tipp" for the focused gap
+  // Fill the full correct answer into the focused gap with an amber flash.
+  const fillHint = useCallback(
+    (id: string | null) => {
+      if (!id || resultsChecked) return;
+      const gap = gaps.find((g) => g.id === id);
+      if (!gap) return;
+      if (!timer.active) timer.start();
+      setAnswers((a) => ({ ...a, [id]: gap.answer }));
+      setStatuses((s) => ({ ...s, [id]: "revealed" }));
+      setFlashId(id);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashId(null), 700);
+      setTimeout(() => inputRefs.current[id]?.focus(), 0);
+    },
+    [gaps, resultsChecked, timer]
+  );
+
+  // Backquote (` / Ё) reveals the full answer in the focused gap.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Backquote") {
         e.preventDefault();
-        setAltHint(true);
+        const target = e.target as HTMLElement | null;
+        const id =
+          target && target.tagName === "INPUT"
+            ? (target.getAttribute("data-gap-id") ?? focusedId)
+            : focusedId;
+        fillHint(id);
       }
     };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Backquote") setAltHint(false);
-    };
-    const onBlur = () => setAltHint(false);
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", onBlur);
     };
-  }, []);
+  }, [fillHint, focusedId]);
 
   useEffect(() => {
     if (!dictAnchor) {
