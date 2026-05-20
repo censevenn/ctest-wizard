@@ -315,7 +315,8 @@ export function CTestView({
     }
   };
 
-  const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
+  const activeGapId = focusedId ?? lastFocusedIdRef.current;
+  const focusedGap = activeGapId ? gaps.find((g) => g.id === activeGapId) : undefined;
 
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     if (!resultsChecked) return answers[tok.id] ?? "";
@@ -495,7 +496,7 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => openHint(focusedId ?? lastFocusedIdRef.current)}
+            onClick={() => openHint(activeGapId)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
             title={focusedGap ? "Vollständige Antwort anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
