@@ -96,6 +96,11 @@
     font-feature-settings: "ss01", "cv11";
   }
 
+  input,
+  textarea {
+    color: hsl(var(--foreground));
+  }
+
   .font-display {
     font-family: 'Fraunces', Georgia, serif;
     font-feature-settings: "ss01";
