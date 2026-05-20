@@ -317,12 +317,6 @@ export function CTestView({
 
   const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
 
-  const startHint = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    setHintActive(true);
-  };
-  const stopHint = () => setHintActive(false);
-
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     if (!resultsChecked) return answers[tok.id] ?? "";
     if (displayMode === "correct") return tok.answer;
@@ -475,7 +469,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> halten zeigt den ersten Buchstaben.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> öffnet den vollständigen Tipp.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
@@ -501,10 +495,10 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => fillHint(focusedId)}
+            onClick={() => openHint(focusedId ?? lastFocusedIdRef.current)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Vollständige Antwort anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
