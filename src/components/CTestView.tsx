@@ -576,6 +576,7 @@ export function CTestView({
           };
           return (
             <GapCluster
+              key={tok.id}
               gapKey={tok.id}
               onLookup={(clientX, clientY) => openDictionary(tok.original, clientX, clientY)}
               prefixEl={<span className="font-display">{tok.prefix}</span>}
@@ -589,7 +590,10 @@ export function CTestView({
                     type="text"
                     value={value}
                     onChange={(e) => handleChange(tok.id, e.target.value.slice(0, tok.answer.length))}
-                    onFocus={() => setFocusedId(tok.id)}
+                    onFocus={() => {
+                      lastFocusedIdRef.current = tok.id;
+                      setFocusedId(tok.id);
+                    }}
                     onBlur={() => setFocusedId((cur) => (cur === tok.id ? null : cur))}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
@@ -615,7 +619,7 @@ export function CTestView({
                       role="tooltip"
                       className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-accent/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
                     >
-                      {tok.answer}
+                      {tok.original}
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
                     </span>
                   )}
