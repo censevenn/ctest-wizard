@@ -541,7 +541,7 @@ export function CTestView({
 
       <article
         className={cn(
-          "relative rounded-xl border border-border bg-card p-6 md:p-10 shadow-sm leading-[2.4] text-lg font-display text-card-foreground transition-[filter]",
+          "relative rounded-xl border border-border bg-card p-6 pb-20 md:p-10 md:pb-20 shadow-sm leading-[2.4] text-lg font-display text-card-foreground transition-[filter]",
           exercisePaused && "select-none blur-md pointer-events-none"
         )}
         style={{ hyphens: "manual" }}
@@ -662,40 +662,39 @@ export function CTestView({
             />
           );
         })}
+        {!resultsChecked && (
+          <div className="absolute bottom-3 right-3 z-30 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 font-sans shadow-lg backdrop-blur-sm">
+            {["ä", "ö", "ü", "ß"].map((ch) => (
+              <button
+                key={ch}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (!focusedId) return;
+                  const gap = gaps.find((g) => g.id === focusedId);
+                  if (!gap) return;
+                  const el = inputRefs.current[focusedId];
+                  if (!el) return;
+                  const cur = answers[focusedId] ?? "";
+                  const start = el.selectionStart ?? cur.length;
+                  const end = el.selectionEnd ?? cur.length;
+                  const next = (cur.slice(0, start) + ch + cur.slice(end)).slice(0, gap.answer.length);
+                  handleChange(focusedId, next);
+                  setTimeout(() => {
+                    el.focus();
+                    const pos = Math.min(start + 1, next.length);
+                    el.setSelectionRange(pos, pos);
+                  }, 0);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                title={`Einfügen: ${ch}`}
+              >
+                {ch}
+              </button>
+            ))}
+          </div>
+        )}
       </article>
-
-      {!resultsChecked && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 md:bottom-24 z-40 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-          {["ä", "ö", "ü", "ß"].map((ch) => (
-            <button
-              key={ch}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (!focusedId) return;
-                const gap = gaps.find((g) => g.id === focusedId);
-                if (!gap) return;
-                const el = inputRefs.current[focusedId];
-                if (!el) return;
-                const cur = answers[focusedId] ?? "";
-                const start = el.selectionStart ?? cur.length;
-                const end = el.selectionEnd ?? cur.length;
-                const next = (cur.slice(0, start) + ch + cur.slice(end)).slice(0, gap.answer.length);
-                handleChange(focusedId, next);
-                setTimeout(() => {
-                  el.focus();
-                  const pos = Math.min(start + 1, next.length);
-                  el.setSelectionRange(pos, pos);
-                }, 0);
-              }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-              title={`Einfügen: ${ch}`}
-            >
-              {ch}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
