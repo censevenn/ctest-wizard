@@ -4,7 +4,7 @@ import path from "path";
 
 // GitHub Pages project site: https://<user>.github.io/ctest-wizard/
 export default defineConfig({
-  base: "/ctest-wizard/",
+  base: process.env.NODE_ENV === "production" ? "/ctest-wizard/" : "/",
   server: {
     host: "::",
     port: 8080,
