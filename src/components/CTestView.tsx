@@ -96,6 +96,7 @@ export function CTestView({
   const [dictLoading, setDictLoading] = useState(false);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const lastFocusedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setAnswers({});
@@ -109,6 +110,7 @@ export function CTestView({
     timer.reset();
     setDictAnchor(null);
     setDictResult(null);
+    lastFocusedIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when exercise changes
   }, [text, exerciseId]);
 
@@ -125,24 +127,24 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Fill the full correct answer into the focused gap with an amber flash.
-  const fillHint = useCallback(
+  // Open a non-mutating hint tooltip for the focused gap.
+  const openHint = useCallback(
     (id: string | null) => {
       if (!id || resultsChecked) return;
       const gap = gaps.find((g) => g.id === id);
       if (!gap) return;
-      if (!timer.active) timer.start();
-      setAnswers((a) => ({ ...a, [id]: gap.answer }));
-      setStatuses((s) => ({ ...s, [id]: "revealed" }));
+      lastFocusedIdRef.current = id;
+      setFocusedId(id);
+      setHintActive(true);
       setFlashId(id);
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlashId(null), 700);
+      flashTimerRef.current = setTimeout(() => setFlashId(null), 900);
       setTimeout(() => inputRefs.current[id]?.focus(), 0);
     },
-    [gaps, resultsChecked, timer]
+    [gaps, resultsChecked]
   );
 
-  // Backquote (` / Ё) reveals the full answer in the focused gap.
+  // Backquote (` / Ё) opens the full-answer hint for the focused gap without filling it.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Backquote") {
@@ -150,16 +152,16 @@ export function CTestView({
         const target = e.target as HTMLElement | null;
         const id =
           target && target.tagName === "INPUT"
-            ? (target.getAttribute("data-gap-id") ?? focusedId)
-            : focusedId;
-        fillHint(id);
+            ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
+            : focusedId ?? lastFocusedIdRef.current;
+        openHint(id);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [fillHint, focusedId]);
+  }, [focusedId, openHint]);
 
   useEffect(() => {
     if (!dictAnchor) {
