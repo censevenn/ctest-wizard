@@ -4,7 +4,13 @@ import { ThemeProvider } from "@/context/ThemeProvider";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
-const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "");
+const routerBasename = (() => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  if (base) return base;
+  return typeof window !== "undefined" && window.location.pathname.startsWith("/ctest-wizard")
+    ? "/ctest-wizard"
+    : undefined;
+})();
 
 const App = () => (
   <ThemeProvider>
