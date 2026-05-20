@@ -96,6 +96,7 @@ export function CTestView({
   const [dictLoading, setDictLoading] = useState(false);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const lastFocusedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setAnswers({});
@@ -109,6 +110,7 @@ export function CTestView({
     timer.reset();
     setDictAnchor(null);
     setDictResult(null);
+    lastFocusedIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when exercise changes
   }, [text, exerciseId]);
 
@@ -125,24 +127,24 @@ export function CTestView({
     };
   }, [hintActive]);
 
-  // Fill the full correct answer into the focused gap with an amber flash.
-  const fillHint = useCallback(
+  // Open a non-mutating hint tooltip for the focused gap.
+  const openHint = useCallback(
     (id: string | null) => {
       if (!id || resultsChecked) return;
       const gap = gaps.find((g) => g.id === id);
       if (!gap) return;
-      if (!timer.active) timer.start();
-      setAnswers((a) => ({ ...a, [id]: gap.answer }));
-      setStatuses((s) => ({ ...s, [id]: "revealed" }));
+      lastFocusedIdRef.current = id;
+      setFocusedId(id);
+      setHintActive(true);
       setFlashId(id);
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlashId(null), 700);
+      flashTimerRef.current = setTimeout(() => setFlashId(null), 900);
       setTimeout(() => inputRefs.current[id]?.focus(), 0);
     },
-    [gaps, resultsChecked, timer]
+    [gaps, resultsChecked]
   );
 
-  // Backquote (` / Ё) reveals the full answer in the focused gap.
+  // Backquote (` / Ё) opens the full-answer hint for the focused gap without filling it.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Backquote") {
@@ -150,16 +152,16 @@ export function CTestView({
         const target = e.target as HTMLElement | null;
         const id =
           target && target.tagName === "INPUT"
-            ? (target.getAttribute("data-gap-id") ?? focusedId)
-            : focusedId;
-        fillHint(id);
+            ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
+            : focusedId ?? lastFocusedIdRef.current;
+        openHint(id);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [fillHint, focusedId]);
+  }, [focusedId, openHint]);
 
   useEffect(() => {
     if (!dictAnchor) {
@@ -313,13 +315,8 @@ export function CTestView({
     }
   };
 
-  const focusedGap = focusedId ? gaps.find((g) => g.id === focusedId) : undefined;
-
-  const startHint = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    setHintActive(true);
-  };
-  const stopHint = () => setHintActive(false);
+  const activeGapId = focusedId ?? lastFocusedIdRef.current;
+  const focusedGap = activeGapId ? gaps.find((g) => g.id === activeGapId) : undefined;
 
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     if (!resultsChecked) return answers[tok.id] ?? "";
@@ -473,7 +470,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> halten zeigt den ersten Buchstaben.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> öffnet den vollständigen Tipp.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
@@ -499,10 +496,10 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => fillHint(focusedId)}
+            onClick={() => openHint(activeGapId)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort einfügen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Vollständige Antwort anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
@@ -544,7 +541,7 @@ export function CTestView({
 
       <article
         className={cn(
-          "relative rounded-xl border border-border bg-card p-6 md:p-10 shadow-sm leading-[2.4] text-lg font-display text-card-foreground transition-[filter]",
+          "relative rounded-xl border border-border bg-card p-6 pb-20 md:p-10 md:pb-20 shadow-sm leading-[2.4] text-lg font-display text-card-foreground transition-[filter]",
           exercisePaused && "select-none blur-md pointer-events-none"
         )}
         style={{ hyphens: "manual" }}
@@ -579,6 +576,7 @@ export function CTestView({
           };
           return (
             <GapCluster
+              key={tok.id}
               gapKey={tok.id}
               onLookup={(clientX, clientY) => openDictionary(tok.original, clientX, clientY)}
               prefixEl={<span className="font-display">{tok.prefix}</span>}
@@ -592,7 +590,10 @@ export function CTestView({
                     type="text"
                     value={value}
                     onChange={(e) => handleChange(tok.id, e.target.value.slice(0, tok.answer.length))}
-                    onFocus={() => setFocusedId(tok.id)}
+                    onFocus={() => {
+                      lastFocusedIdRef.current = tok.id;
+                      setFocusedId(tok.id);
+                    }}
                     onBlur={() => setFocusedId((cur) => (cur === tok.id ? null : cur))}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
@@ -618,7 +619,7 @@ export function CTestView({
                       role="tooltip"
                       className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-9 z-20 rounded-md border border-accent/40 bg-popover px-2 py-1 text-xs font-sans font-medium tracking-wide text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150"
                     >
-                      {tok.answer}
+                      {tok.original}
                       <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-2 w-2 rotate-45 border-r border-b border-accent/40 bg-popover" />
                     </span>
                   )}
@@ -661,40 +662,39 @@ export function CTestView({
             />
           );
         })}
+        {!resultsChecked && (
+          <div className="absolute bottom-3 right-3 z-30 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 font-sans shadow-lg backdrop-blur-sm">
+            {["ä", "ö", "ü", "ß"].map((ch) => (
+              <button
+                key={ch}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (!focusedId) return;
+                  const gap = gaps.find((g) => g.id === focusedId);
+                  if (!gap) return;
+                  const el = inputRefs.current[focusedId];
+                  if (!el) return;
+                  const cur = answers[focusedId] ?? "";
+                  const start = el.selectionStart ?? cur.length;
+                  const end = el.selectionEnd ?? cur.length;
+                  const next = (cur.slice(0, start) + ch + cur.slice(end)).slice(0, gap.answer.length);
+                  handleChange(focusedId, next);
+                  setTimeout(() => {
+                    el.focus();
+                    const pos = Math.min(start + 1, next.length);
+                    el.setSelectionRange(pos, pos);
+                  }, 0);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                title={`Einfügen: ${ch}`}
+              >
+                {ch}
+              </button>
+            ))}
+          </div>
+        )}
       </article>
-
-      {!resultsChecked && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 md:bottom-24 z-40 flex gap-1.5 rounded-xl border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-          {["ä", "ö", "ü", "ß"].map((ch) => (
-            <button
-              key={ch}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (!focusedId) return;
-                const gap = gaps.find((g) => g.id === focusedId);
-                if (!gap) return;
-                const el = inputRefs.current[focusedId];
-                if (!el) return;
-                const cur = answers[focusedId] ?? "";
-                const start = el.selectionStart ?? cur.length;
-                const end = el.selectionEnd ?? cur.length;
-                const next = (cur.slice(0, start) + ch + cur.slice(end)).slice(0, gap.answer.length);
-                handleChange(focusedId, next);
-                setTimeout(() => {
-                  el.focus();
-                  const pos = Math.min(start + 1, next.length);
-                  el.setSelectionRange(pos, pos);
-                }, 0);
-              }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-              title={`Einfügen: ${ch}`}
-            >
-              {ch}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
