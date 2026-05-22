@@ -117,17 +117,24 @@ export function CTestView({
   useEffect(() => {
     if (!hintActive) return;
     const release = () => setHintActive(false);
+    const releaseKey = (e: KeyboardEvent) => {
+      if (e.code === "Backquote") setHintActive(false);
+    };
     window.addEventListener("mouseup", release);
     window.addEventListener("touchend", release);
+    window.addEventListener("touchcancel", release);
     window.addEventListener("blur", release);
+    window.addEventListener("keyup", releaseKey);
     return () => {
       window.removeEventListener("mouseup", release);
       window.removeEventListener("touchend", release);
+      window.removeEventListener("touchcancel", release);
       window.removeEventListener("blur", release);
+      window.removeEventListener("keyup", releaseKey);
     };
   }, [hintActive]);
 
-  // Open a non-mutating hint tooltip for the focused gap.
+  // Open a non-mutating hint tooltip for the focused gap. Stays open until release.
   const openHint = useCallback(
     (id: string | null) => {
       if (!id || resultsChecked) return;
@@ -139,23 +146,22 @@ export function CTestView({
       setFlashId(id);
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
       flashTimerRef.current = setTimeout(() => setFlashId(null), 900);
-      setTimeout(() => inputRefs.current[id]?.focus(), 0);
     },
     [gaps, resultsChecked]
   );
 
-  // Backquote (` / Ё) opens the full-answer hint for the focused gap without filling it.
+  // Backquote (` / Ё) — hold to reveal the full answer for the focused gap.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Backquote") {
-        e.preventDefault();
-        const target = e.target as HTMLElement | null;
-        const id =
-          target && target.tagName === "INPUT"
-            ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
-            : focusedId ?? lastFocusedIdRef.current;
-        openHint(id);
-      }
+      if (e.code !== "Backquote") return;
+      e.preventDefault();
+      if (e.repeat) return;
+      const target = e.target as HTMLElement | null;
+      const id =
+        target && target.tagName === "INPUT"
+          ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
+          : focusedId ?? lastFocusedIdRef.current;
+      openHint(id);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
@@ -496,10 +502,20 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => openHint(activeGapId)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              openHint(activeGapId);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              openHint(activeGapId);
+            }}
+            onMouseLeave={() => setHintActive(false)}
+            onMouseUp={() => setHintActive(false)}
+            onTouchEnd={() => setHintActive(false)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten für vollständige Antwort (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp

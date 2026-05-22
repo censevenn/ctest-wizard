@@ -5,7 +5,7 @@ import { CustomTextEditor } from "@/components/CustomTextEditor";
 import { AppHeader } from "@/components/AppHeader";
 import { GuestLanding } from "@/components/GuestLanding";
 import { sampleTexts } from "@/data/sampleTexts";
-import { getLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
+import { fetchLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
 import {
   defaultGuestProfile,
   loadGuestCode,
@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
-  const [library, setLibrary] = useState<LibraryItem[]>(() => getLibrary());
+  const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [activeId, setActiveId] = useState<string>(sampleTexts[0].id);
   const [guestCode, setGuestCode] = useState<string | null>(() => loadGuestCode());
   const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(() => {
@@ -33,7 +33,19 @@ const Index = () => {
   const [customMode, setCustomMode] = useState<"editor" | "test">("editor");
   const [generating, setGenerating] = useState(false);
 
-  const refreshLibrary = () => setLibrary(getLibrary());
+  const refreshLibrary = useCallback(async (code: string | null) => {
+    if (!code) {
+      setLibrary([]);
+      return;
+    }
+    const items = await fetchLibrary(code);
+    setLibrary(items);
+  }, []);
+
+  // Initial load + reload whenever guest code changes
+  useEffect(() => {
+    void refreshLibrary(guestCode);
+  }, [guestCode, refreshLibrary]);
 
   const handleGuestLogin = useCallback((code: string) => {
     if (!isValidGuestCode(code)) return;
@@ -89,6 +101,7 @@ const Index = () => {
 
   const handleGenerateAI = async () => {
     if (generating) return;
+    if (!guestCode) return;
     setGenerating(true);
     const toastId = toast.loading("KI schreibt einen neuen Text…");
     try {
@@ -99,7 +112,7 @@ const Index = () => {
       if (!data || data.error) throw new Error(data?.error || "Unbekannter Fehler");
       if (!data.text || typeof data.text !== "string") throw new Error("Leerer KI-Text");
 
-      const item = saveLibraryItem({
+      const item = await saveLibraryItem(guestCode, {
         id: makeId("ai"),
         title: data.title || "KI-Text",
         topic: data.topic || "Allgemein",
@@ -107,7 +120,7 @@ const Index = () => {
         text: data.text,
         source: "ai",
       });
-      refreshLibrary();
+      await refreshLibrary(guestCode);
       setActiveId(item.id);
       toast.success("Neuer C-Test erstellt", { id: toastId, description: item.title });
     } catch (e) {
@@ -118,18 +131,19 @@ const Index = () => {
     }
   };
 
-  const handleDeleteLibrary = (id: string) => {
-    removeLibraryItem(id);
+  const handleDeleteLibrary = async (id: string) => {
+    if (!guestCode) return;
+    await removeLibraryItem(guestCode, id);
     if (activeId === id) setActiveId(sampleTexts[0].id);
-    refreshLibrary();
+    await refreshLibrary(guestCode);
   };
 
-  const handleApplyCustom = (title: string, text: string) => {
+  const handleApplyCustom = async (title: string, text: string) => {
+    if (!guestCode) return;
     setCustomTitle(title);
     setCustomText(text);
     setCustomMode("test");
-    // Persist to library too
-    const item = saveLibraryItem({
+    const item = await saveLibraryItem(guestCode, {
       id: makeId("custom"),
       title,
       topic: "Eigener Text",
@@ -137,16 +151,10 @@ const Index = () => {
       text,
       source: "custom",
     });
-    refreshLibrary();
+    await refreshLibrary(guestCode);
     setActiveId(item.id);
   };
 
-  // Re-sync library if storage changes in another tab
-  useEffect(() => {
-    const onStorage = () => refreshLibrary();
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
 
   if (!guestCode) {
     return <GuestLanding onLogin={handleGuestLogin} />;
