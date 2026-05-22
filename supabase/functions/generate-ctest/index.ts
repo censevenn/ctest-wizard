@@ -33,18 +33,19 @@ Deno.serve(async (req) => {
     const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
 
     const system = `Du bist ein Deutschlehrer, der akademische Kurztexte für C-Tests am Studienkolleg schreibt.
+
+WICHTIG: Liefere AUSSCHLIESSLICH sauberen, vollständigen, fließenden deutschen Text. Der C-Test wird CLIENT-SEITIG mechanisch aus deinem Text erzeugt — du darfst NIEMALS Lücken, Unterstriche, Platzhalter, fehlende Buchstaben, eckige/geschweifte Klammern, Markdown oder irgendwelche Formatierung einbauen. Jedes Wort muss vollständig ausgeschrieben sein.
+
 Anforderungen:
 - Sprache: Deutsch.
 - Niveau: ${requestedLevel}.
-- Erzeuge einen anspruchsvollen akademischen Text (B2/C1), 100–150 Wörter, 6–9 Sätze.
-- Themen bevorzugt: Ethik, Digitalisierung oder Naturwissenschaften/Wissenschaft (weiche thematisch auf "${topic}" ein, falls passend).
-- Perfekte Grammatik und Rechtschreibung (Duden). Keine Listen, keine Stichpunkte, keine Nummerierungen.
-- Inhaltlich kohärent, sachlich-akademischer Stil.
+- Länge: 100–150 Wörter, 6–9 zusammenhängende Sätze.
+- Themen bevorzugt: Ethik, Digitalisierung, Naturwissenschaften (passe thematisch auf "${topic}" an, falls sinnvoll).
+- Perfekte Grammatik und Rechtschreibung nach Duden. Sachlich-akademischer Stil, kohärenter Fließtext.
 - Der ERSTE Satz ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
-- KEINE Aufzählungen, KEINE Überschriften innerhalb des Fließtexts, KEINE Klammern, KEINE Anführungszeichen, keine Emojis.
-- Nur normale Satzzeichen: . , ; : ? ! und ggf. …
-- Verwende nur Buchstaben (inkl. Umlaute/ß), Bindestriche in zusammengesetzten Wörtern sind erlaubt. Keine Sonderzeichen in Wörtern, die den C-Test-Parser stören könnten.
-- Du MUSST immer einen aussagekräftigen Titel liefern (Feld "title"): prägnant, max. 6 Wörter, deutsch.
+- Erlaubte Zeichen: deutsche Buchstaben inkl. Umlaute/ß, Ziffern bei Bedarf, sowie die Satzzeichen . , ; : ? !  und Bindestriche in echten zusammengesetzten Wörtern.
+- VERBOTEN: Unterstriche (_), Sternchen (*), Schrägstriche (/), Klammern, Anführungszeichen, Aufzählungen, Listen, Überschriften, Emojis, Punkte hintereinander (…), eckige/geschweifte Klammern, JSON, HTML.
+- Liefere immer einen prägnanten Titel (max. 6 Wörter, deutsch) im Feld "title".
 - Gib das Ergebnis ausschließlich als JSON via Tool-Call zurück.`;
 
     const user = `Schreibe einen C-Test-Text passend zu: "${topic}". Niveau ${requestedLevel}. Titel nicht vergessen.`;
