@@ -19,11 +19,13 @@ interface DbRow {
 }
 
 function rowToItem(r: DbRow): LibraryItem {
+  const level: LibraryItem["level"] =
+    r.level === "B2" || r.level === "C1" ? r.level : "Custom";
   return {
     id: r.id,
     title: r.title,
     topic: r.topic,
-    level: r.level,
+    level,
     text: r.text,
     source: r.source === "ai" ? "ai" : "custom",
     createdAt: new Date(r.created_at).getTime(),
