@@ -5,7 +5,7 @@ import { CustomTextEditor } from "@/components/CustomTextEditor";
 import { AppHeader } from "@/components/AppHeader";
 import { GuestLanding } from "@/components/GuestLanding";
 import { sampleTexts } from "@/data/sampleTexts";
-import { getLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
+import { fetchLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
 import {
   defaultGuestProfile,
   loadGuestCode,
