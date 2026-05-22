@@ -1,39 +1,82 @@
-// Lightweight localStorage-backed library for saved C-Test texts.
+// Cloud-backed library for saved C-Test texts, keyed by 6-digit guest code.
 import type { SampleText } from "@/data/sampleTexts";
-
-const KEY = "ctest.library.v1";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface LibraryItem extends SampleText {
   source: "ai" | "custom";
   createdAt: number;
 }
 
-function safeParse(raw: string | null): LibraryItem[] {
-  if (!raw) return [];
-  try {
-    const v = JSON.parse(raw);
-    return Array.isArray(v) ? v.filter(Boolean) : [];
-  } catch {
+interface DbRow {
+  id: string;
+  guest_code: string;
+  title: string;
+  topic: string;
+  level: string;
+  text: string;
+  source: string;
+  created_at: string;
+}
+
+function rowToItem(r: DbRow): LibraryItem {
+  return {
+    id: r.id,
+    title: r.title,
+    topic: r.topic,
+    level: r.level,
+    text: r.text,
+    source: r.source === "ai" ? "ai" : "custom",
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+export async function fetchLibrary(guestCode: string): Promise<LibraryItem[]> {
+  if (!/^\d{6}$/.test(guestCode)) return [];
+  const { data, error } = await supabase
+    .from("library_items")
+    .select("*")
+    .eq("guest_code", guestCode)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    console.error("fetchLibrary error", error);
     return [];
   }
+  return (data as DbRow[]).map(rowToItem);
 }
 
-export function getLibrary(): LibraryItem[] {
-  if (typeof window === "undefined") return [];
-  return safeParse(localStorage.getItem(KEY)).sort((a, b) => b.createdAt - a.createdAt);
+export async function saveLibraryItem(
+  guestCode: string,
+  item: Omit<LibraryItem, "createdAt"> & { createdAt?: number }
+): Promise<LibraryItem> {
+  const row = {
+    id: item.id,
+    guest_code: guestCode,
+    title: item.title,
+    topic: item.topic,
+    level: item.level,
+    text: item.text,
+    source: item.source,
+  };
+  const { data, error } = await supabase
+    .from("library_items")
+    .upsert(row, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) {
+    console.error("saveLibraryItem error", error);
+    return { ...item, createdAt: item.createdAt ?? Date.now() } as LibraryItem;
+  }
+  return rowToItem(data as DbRow);
 }
 
-export function saveLibraryItem(item: Omit<LibraryItem, "createdAt"> & { createdAt?: number }): LibraryItem {
-  const full: LibraryItem = { ...item, createdAt: item.createdAt ?? Date.now() };
-  const all = getLibrary().filter((x) => x.id !== full.id);
-  all.unshift(full);
-  localStorage.setItem(KEY, JSON.stringify(all.slice(0, 50)));
-  return full;
-}
-
-export function removeLibraryItem(id: string): void {
-  const all = getLibrary().filter((x) => x.id !== id);
-  localStorage.setItem(KEY, JSON.stringify(all));
+export async function removeLibraryItem(guestCode: string, id: string): Promise<void> {
+  const { error } = await supabase
+    .from("library_items")
+    .delete()
+    .eq("id", id)
+    .eq("guest_code", guestCode);
+  if (error) console.error("removeLibraryItem error", error);
 }
 
 export function makeId(prefix: string): string {
