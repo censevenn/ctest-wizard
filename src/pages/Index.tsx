@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
-  const [library, setLibrary] = useState<LibraryItem[]>(() => getLibrary());
+  const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [activeId, setActiveId] = useState<string>(sampleTexts[0].id);
   const [guestCode, setGuestCode] = useState<string | null>(() => loadGuestCode());
   const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(() => {
@@ -33,7 +33,19 @@ const Index = () => {
   const [customMode, setCustomMode] = useState<"editor" | "test">("editor");
   const [generating, setGenerating] = useState(false);
 
-  const refreshLibrary = () => setLibrary(getLibrary());
+  const refreshLibrary = useCallback(async (code: string | null) => {
+    if (!code) {
+      setLibrary([]);
+      return;
+    }
+    const items = await fetchLibrary(code);
+    setLibrary(items);
+  }, []);
+
+  // Initial load + reload whenever guest code changes
+  useEffect(() => {
+    void refreshLibrary(guestCode);
+  }, [guestCode, refreshLibrary]);
 
   const handleGuestLogin = useCallback((code: string) => {
     if (!isValidGuestCode(code)) return;
