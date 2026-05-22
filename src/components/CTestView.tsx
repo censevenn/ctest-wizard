@@ -502,10 +502,20 @@ export function CTestView({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => openHint(activeGapId)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              openHint(activeGapId);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              openHint(activeGapId);
+            }}
+            onMouseLeave={() => setHintActive(false)}
+            onMouseUp={() => setHintActive(false)}
+            onTouchEnd={() => setHintActive(false)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Vollständige Antwort anzeigen (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten für vollständige Antwort (` / Ё)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
