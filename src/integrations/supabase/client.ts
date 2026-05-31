@@ -21,7 +21,7 @@ const createMockSupabase = () => {
   } as any; // Принудительно приводим к any, чтобы обмануть строгие проверки типов
 };
 
-// Экспортируем реальный клиент или безопасную заглушку
+// // Экспортируем реальный клиент или безопасную заглушку
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
