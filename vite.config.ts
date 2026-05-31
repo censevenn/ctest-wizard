@@ -5,7 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Базовый путь для деплоя на GitHub Pages (имя вашего репозитория)
   base: mode === 'production' ? '/ctest-wizard/' : '/',
   server: {
     host: "::",
@@ -13,12 +12,16 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // Игнорируем ошибки сборки TypeScript во время оптимизации
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    ignoreAnnotations: true,
   },
 }));
