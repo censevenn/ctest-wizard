@@ -234,19 +234,24 @@ export function CTestView({
   const avgMsPerGap =
     filledCount > 0 && timer.active ? Math.round(timer.elapsedMs / filledCount) : null;
 
+  const focusNextGap = (currentId: string) => {
+    const idx = gaps.findIndex((g) => g.id === currentId);
+    if (idx < 0) return;
+    const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
+    if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 30);
+  };
+
   const handleChange = (id: string, value: string) => {
     if (resultsChecked) return;
     if (!timer.active) timer.start();
     setAnswers((a) => ({ ...a, [id]: value }));
     const gap = gaps.find((g) => g.id === id);
-    if (stepByStep && gap) {
+    if (!gap) return;
+    if (stepByStep) {
       if (value.length === gap.answer.length) {
         if (value === gap.answer) {
           setStatuses((s) => ({ ...s, [id]: "correct" }));
-          // Advance to next gap
-          const idx = gaps.findIndex((g) => g.id === id);
-          const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
-          if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 50);
+          focusNextGap(id);
         } else {
           setStatuses((s) => ({ ...s, [id]: "incorrect" }));
         }
@@ -255,6 +260,10 @@ export function CTestView({
       }
     } else {
       setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+      // Smart auto-advance when the user has typed all required characters
+      if (value.length === gap.answer.length && gap.answer.length > 0) {
+        focusNextGap(id);
+      }
     }
   };
 
