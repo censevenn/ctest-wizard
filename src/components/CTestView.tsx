@@ -386,6 +386,15 @@ export function CTestView({
 
   return (
     <div className="space-y-6 relative">
+      {parseError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive-foreground"
+        >
+          <p className="font-medium">Failed to parse text format.</p>
+          <p className="mt-1 text-xs opacity-80">{parseError}</p>
+        </div>
+      )}
       <div
         className={cn(
           "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 rounded-xl border border-border bg-card/95 dark:bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm",
