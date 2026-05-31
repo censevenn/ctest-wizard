@@ -31,3 +31,4 @@ export const supabase = supabaseUrl && supabaseAnonKey
       }
     })
   : createMockSupabase();
+ 
