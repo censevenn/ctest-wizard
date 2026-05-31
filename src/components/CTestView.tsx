@@ -68,7 +68,26 @@ export function CTestView({
   onNewText,
   onCheckComplete,
 }: CTestViewProps) {
-  const tokens = useMemo<Token[]>(() => buildCTest(text), [text]);
+  const parseResult = useMemo<{ tokens: Token[]; error: string | null }>(() => {
+    try {
+      const result = buildCTest(text);
+      if (!Array.isArray(result)) throw new Error("Parser returned non-array");
+      for (const t of result) {
+        if (!t || typeof t !== "object" || !("type" in t)) {
+          throw new Error("Malformed token in parsed output");
+        }
+        if (t.type === "gap" && (typeof t.answer !== "string" || typeof t.prefix !== "string" || typeof t.id !== "string")) {
+          throw new Error("Gap token missing required fields");
+        }
+      }
+      return { tokens: result, error: null };
+    } catch (e) {
+      console.error("buildCTest failed:", e);
+      return { tokens: [], error: e instanceof Error ? e.message : "Unbekannter Parser-Fehler" };
+    }
+  }, [text]);
+  const tokens = parseResult.tokens;
+  const parseError = parseResult.error;
   const gaps = useMemo(
     () => tokens.filter((t) => t.type === "gap") as Extract<Token, { type: "gap" }>[],
     [tokens]
@@ -215,19 +234,24 @@ export function CTestView({
   const avgMsPerGap =
     filledCount > 0 && timer.active ? Math.round(timer.elapsedMs / filledCount) : null;
 
+  const focusNextGap = (currentId: string) => {
+    const idx = gaps.findIndex((g) => g.id === currentId);
+    if (idx < 0) return;
+    const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
+    if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 30);
+  };
+
   const handleChange = (id: string, value: string) => {
     if (resultsChecked) return;
     if (!timer.active) timer.start();
     setAnswers((a) => ({ ...a, [id]: value }));
     const gap = gaps.find((g) => g.id === id);
-    if (stepByStep && gap) {
+    if (!gap) return;
+    if (stepByStep) {
       if (value.length === gap.answer.length) {
         if (value === gap.answer) {
           setStatuses((s) => ({ ...s, [id]: "correct" }));
-          // Advance to next gap
-          const idx = gaps.findIndex((g) => g.id === id);
-          const next = gaps.slice(idx + 1).find((g) => statuses[g.id] !== "correct");
-          if (next) setTimeout(() => inputRefs.current[next.id]?.focus(), 50);
+          focusNextGap(id);
         } else {
           setStatuses((s) => ({ ...s, [id]: "incorrect" }));
         }
@@ -236,6 +260,10 @@ export function CTestView({
       }
     } else {
       setStatuses((s) => (s[id] ? { ...s, [id]: "idle" } : s));
+      // Smart auto-advance when the user has typed all required characters
+      if (value.length === gap.answer.length && gap.answer.length > 0) {
+        focusNextGap(id);
+      }
     }
   };
 
@@ -358,6 +386,15 @@ export function CTestView({
 
   return (
     <div className="space-y-6 relative">
+      {parseError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive-foreground"
+        >
+          <p className="font-medium">Failed to parse text format.</p>
+          <p className="mt-1 text-xs opacity-80">{parseError}</p>
+        </div>
+      )}
       <div
         className={cn(
           "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2 rounded-xl border border-border bg-card/95 dark:bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm",
