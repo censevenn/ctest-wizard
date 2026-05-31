@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   build-and-deploy:
-    runs-allowed-failure: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,17 +18,19 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-cache: 'npm'
+          node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps || npm install
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-      - name: Build
+      - name: Build Project
+        # Переменная CI=false гарантирует, что мелкие предупреждения не сломают билд
         run: |
           export CI=false
           npx vite build
 
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
