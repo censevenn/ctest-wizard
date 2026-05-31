@@ -38,6 +38,8 @@ jobs:
           NODE_ENV: production
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # ВОТ ЭТУ СТРОКУ МЫ ДОБАВИЛИ:
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
 
       - name: SPA fallback (copy index.html to 404.html)
         run: cp dist/index.html dist/404.html
