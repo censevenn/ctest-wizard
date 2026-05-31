@@ -82,7 +82,7 @@ Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
       return new Response(JSON.stringify({ error: `AI Gateway Error: ${aiResp.status}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      };
+      });
     }
 
     const data = await aiResp.json();
@@ -92,7 +92,7 @@ Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
       throw new Error("Leere Antwort von der KI-Schnittstelle.");
     }
 
-    // Очистка от возможных Markdown-оберток
+    // Очистка от возможных Markdown-оберток (```json ... ```)
     messageContent = messageContent.replace(/```json/g, "").replace(/```/g, "").trim();
 
     const parsed = JSON.parse(messageContent);
