@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc"; // Вернули swc-плагин, который точно есть в твоём проекте
+import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
-  base: "/ctest-wizard/", // Наш принудительный путь для GitHub Pages остаётся на месте
+  base: "/ctest-wizard/", // Фиксируем базовый путь, чтобы не было 404
   server: {
     host: "::",
     port: 8080,
