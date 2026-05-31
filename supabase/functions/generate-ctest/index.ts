@@ -25,69 +25,77 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Используем прямой токен OpenRouter или OpenAI, который мы сохраним в панели Supabase
-    const apiKey = Deno.env.get("OPENROUTER_API_KEY") || Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) throw new Error("ИИ-ключ (OPENROUTER_API_KEY или OPENAI_API_KEY) не настроен в Supabase Vault!");
+    // Используем бесплатный токен Hugging Face (сохрани его в секретах Supabase как HUGGINGFACE_API_KEY)
+    const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
+    if (!apiKey) throw new Error("HUGGINGFACE_API_KEY ist in den Supabase-Geheimnissen nicht konfiguriert!");
 
     const body = await req.json().catch(() => ({}));
     const requestedLevel: string = body?.level === "C1" ? "C1" : body?.level === "B2" ? "B2" : Math.random() < 0.5 ? "B2" : "C1";
     const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
 
-    const system = `Du bist ein Deutschlehrer, der akademische Kurztexte für C-Tests am Studienkolleg schreibt.
+    const systemPrompt = `Du bist ein Deutschlehrer, der akademische Kurztexte für C-Tests am Studienkolleg schreibt.
 
-WICHTIG: Liefere AUSSCHLIESSLICH sauberen, vollständigen, fließenden deutschen Text. Der C-Test wird CLIENT-SEITIG mechanisch aus deinem Text erzeugt — du darfst NIEMALS Lücken, Unterstriche, Platzhalter, fehlende Buchstaben, eckige/geschweifte Klammern, Markdown oder irgendwelche Formatierung einbauen. Jedes Wort muss vollständig ausgeschrieben sein.
+WICHTIG: Liefere AUSSCHLIESSLICH sauberen, vollständigen, fließenden deutschen Text im JSON-Format. Der C-Test wird CLIENT-SEITIG mechanisch aus deinem Text erzeugt — du darfst NIEMALS Lücken, Unterstriche, Platzhalter, fehlende Buchstaben, eckige/geschweifte Klammern, Markdown oder irgendwelche Formatierung einbauen. Jedes Wort muss vollständig ausgeschrieben sein.
 
 Anforderungen:
 - Sprache: Deutsch.
 - Niveau: ${requestedLevel}.
 - Länge: 100–150 Wörter, 6–9 zusammenhängende Sätze.
-- Themen bevorzugt: Ethik, Digitalisierung, Naturwissenschaften (passe thematisch auf "${topic}" an, falls sinnvoll).
+- Thema: "${topic}".
 - Perfekte Grammatik und Rechtschreibung nach Duden. Sachlich-akademischer Stil, kohärenter Fließtext.
-- Der ERSTE Satz ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
+- Der ERSTE SANKT ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
 - Erlaubte Zeichen: deutsche Buchstaben inkl. Umlaute/ß, Ziffern bei Bedarf, sowie die Satzzeichen . , ; : ? ! und Bindestriche in echten zusammengesetzten Wörtern.
-- VERBOTEN: Unterstriche (_), Sternchen (*), Schrägstriche (/), Klammern, Anführungszeichen, Aufzählungen, Listen, Überschriften, Emojis, Punkte hintereinander (…), eckige/geschweifte Klammern, JSON, HTML.
-- Liefere immer einen prägnanten Titel (max. 6 Wörter, deutsch) im Feld "title".
-- Gib das Ergebnis ausschließlich в формате JSON, используя структуру параметров функции return_ctest_text. Respond with JSON containing title, topic, level, and text properties.`;
+- VERBOTEN: Unterstriche (_), Sternchen (*), Schrägstriche (/), Klammern, Anführungszeichen, Aufzählungen, Listen, Überschriften, Emojis, Punkte hintereinander (…), eckige/geschweifte Klammern, HTML.
 
-    const user = `Schreibe einen C-Test-Text passend zu: "${topic}". Niveau ${requestedLevel}. Titel nicht vergessen.`;
+Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
+{
+  "title": "Prägnanter Titel max 6 Wörter",
+  "topic": "${topic}",
+  "level": "${requestedLevel}",
+  "text": "Hier steht der komplette, unzensierte, fließende Fließtext ohne jegliche Lücken oder Formatierungen."
+}`;
 
-    // Переключаем отправку на официальный эндпоинт OpenRouter
-    const gatewayUrl = "https://openrouter.ai/api/v1/chat/completions";
+    const userPrompt = `Schreibe einen C-Test-Text passend zu: "${topic}". Niveau ${requestedLevel}. Liefere nur das JSON-Objekt.`;
+
+    // Мы используем мощную модель Meta Llama 3 через бесплатный Serverless API от Hugging Face
+    const gatewayUrl = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct";
 
     const aiResp = await fetch(gatewayUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/censevenn/ctest-wizard", // Для верификации запросов
       },
       body: JSON.stringify({
-        // Здесь можно указать любую модель. Например, отличную бесплатную "google/gemini-2.5-flash" или мощную "meta-llama/llama-3-70b-instruct"
-        model: "google/gemini-2.5-flash", 
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        response_format: { type: "json_object" } // Заставляем ИИ возвращать чистый JSON объект
+        inputs: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`,
+        parameters: {
+          max_new_tokens: 500,
+          temperature: 0.7,
+          return_full_text: false
+        }
       }),
     });
 
     if (!aiResp.ok) {
       const errText = await aiResp.text();
-      console.error("AI gateway error:", aiResp.status, errText);
+      console.error("Hugging Face API Error:", aiResp.status, errText);
       return new Response(JSON.stringify({ error: `AI Gateway Error: ${aiResp.status}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
+    });
 
     const data = await aiResp.json();
-    const messageContent = data?.choices?.[0]?.message?.content;
+    // Hugging Face возвращает ответ в массиве объектов: [{ generated_text: "..." }]
+    let messageContent = data?.[0]?.generated_text || data?.generated_text;
+    
     if (!messageContent) {
-      throw new Error("Пустой ответ от нейросети.");
+      throw new Error("Leere Antwort von der KI-Schnittstelle.");
     }
 
-    // Парсим JSON, полученный напрямую из текстового ответа
+    // Очищаем от возможных оберток Markdown (```json ... ```), если модель их случайно добавила
+    messageContent = messageContent.replace(/```json/g, "").replace(/```/g, "").trim();
+
     const parsed = JSON.parse(messageContent);
     const rawTitle = String(parsed.title ?? "").trim();
     const title = rawTitle.length > 0 ? rawTitle.slice(0, 80) : `Thema: ${String(parsed.topic ?? topic).slice(0, 60)}`;
