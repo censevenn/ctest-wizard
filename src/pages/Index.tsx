@@ -5,7 +5,7 @@ import { CustomTextEditor } from "@/components/CustomTextEditor";
 import { AppHeader } from "@/components/AppHeader";
 import { GuestLanding } from "@/components/GuestLanding";
 import { sampleTexts } from "@/data/sampleTexts";
-import { fetchLibrary, saveLibraryItem, removeLibraryItem, makeId, type LibraryItem } from "@/lib/library";
+import { fetchLibrary, saveLibraryItem, makeId, type LibraryItem, removeLibraryItem } from "@/lib/library";
 import {
   defaultGuestProfile,
   loadGuestCode,
@@ -17,7 +17,6 @@ import {
   isValidGuestCode,
   type GuestProfile,
 } from "@/lib/guestProfile";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -42,7 +41,6 @@ const Index = () => {
     setLibrary(items);
   }, []);
 
-  // Initial load + reload whenever guest code changes
   useEffect(() => {
     void refreshLibrary(guestCode);
   }, [guestCode, refreshLibrary]);
@@ -99,18 +97,76 @@ const Index = () => {
     setActiveId("custom");
   };
 
+  // НОВАЯ ПРЯМАЯ ГЕНЕРАЦИЯ ЧЕРЕЗ OPENROUTER
   const handleGenerateAI = async () => {
     if (generating) return;
     if (!guestCode) return;
+    setGenerating(false);
+
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      toast.error("API-ключ отсутствует", {
+        description: "Пожалуйста, добавьте VITE_OPENROUTER_API_KEY в секреты репозитория GitHub.",
+      });
+      return;
+    }
+
     setGenerating(true);
     const toastId = toast.loading("KI schreibt einen neuen Text…");
+    const targetLevel = Math.random() < 0.5 ? "B2" : "C1";
+
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ctest", {
-        body: { level: Math.random() < 0.5 ? "B2" : "C1" },
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://github.com/censevenn/ctest-wizard",
+          "X-Title": "C-Test Wizard",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash", // Быстрая и экономичная модель для генерации текстов
+          messages: [
+            {
+              role: "system",
+              content: `Du bist ein Experte für deutsche Sprache und erstellst C-Test-Texte für das Studienkolleg-Niveau. 
+              Erstelle einen interessanten, zusammenhängenden Text auf Deutsch (Niveau ${targetLevel}).
+              Der Text muss genau ein zusammenhängender Absatz sein (ca. 5-7 Sätze, insgesamt 80-120 Wörter).
+              WICHTIG: Gib das Ergebnis AUSSCHLIESSLICH als valides JSON-Objekt zurück, ohne Markdown-Formatierung (keine \`\`\`json Blöcke).
+              Struktur des JSON:
+              {
+                "title": "Ein knackiger Titel zum Thema",
+                "topic": "Das Hauptthema (z.B. Umwelt, Technologie, Kultur, Medien)",
+                "level": "${targetLevel}",
+                "text": "Der vollständige, normale Text ohne Lücken. Der Text MUSS fehlerfrei sein."
+              }`
+            },
+            {
+              role: "user",
+              content: "Generiere einen neuen Text."
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
       });
-      if (error) throw error;
-      if (!data || data.error) throw new Error(data?.error || "Unbekannter Fehler");
-      if (!data.text || typeof data.text !== "string") throw new Error("Leerer KI-Text");
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter Fehler: Status ${response.status}`);
+      }
+
+      const result = await response.json();
+      const contentText = result.choices?.[0]?.message?.content;
+      
+      if (!contentText) {
+        throw new Error("Keine Antwort von der KI erhalten");
+      }
+
+      // Парсим JSON из ответа модели
+      const data = JSON.parse(contentText.trim());
+
+      if (!data.text) {
+        throw new Error("Der generierte KI-Text ist leer.");
+      }
 
       const item = await saveLibraryItem(guestCode, {
         id: makeId("ai"),
@@ -120,10 +176,12 @@ const Index = () => {
         text: data.text,
         source: "ai",
       });
+
       await refreshLibrary(guestCode);
       setActiveId(item.id);
       toast.success("Neuer C-Test erstellt", { id: toastId, description: item.title });
     } catch (e) {
+      console.error(e);
       const msg = e instanceof Error ? e.message : "Generierung fehlgeschlagen";
       toast.error("KI-Generierung fehlgeschlagen", { id: toastId, description: msg });
     } finally {
@@ -154,7 +212,6 @@ const Index = () => {
     await refreshLibrary(guestCode);
     setActiveId(item.id);
   };
-
 
   if (!guestCode) {
     return <GuestLanding onLogin={handleGuestLogin} />;
