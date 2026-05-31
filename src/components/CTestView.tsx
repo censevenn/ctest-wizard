@@ -68,7 +68,26 @@ export function CTestView({
   onNewText,
   onCheckComplete,
 }: CTestViewProps) {
-  const tokens = useMemo<Token[]>(() => buildCTest(text), [text]);
+  const parseResult = useMemo<{ tokens: Token[]; error: string | null }>(() => {
+    try {
+      const result = buildCTest(text);
+      if (!Array.isArray(result)) throw new Error("Parser returned non-array");
+      for (const t of result) {
+        if (!t || typeof t !== "object" || !("type" in t)) {
+          throw new Error("Malformed token in parsed output");
+        }
+        if (t.type === "gap" && (typeof t.answer !== "string" || typeof t.prefix !== "string" || typeof t.id !== "string")) {
+          throw new Error("Gap token missing required fields");
+        }
+      }
+      return { tokens: result, error: null };
+    } catch (e) {
+      console.error("buildCTest failed:", e);
+      return { tokens: [], error: e instanceof Error ? e.message : "Unbekannter Parser-Fehler" };
+    }
+  }, [text]);
+  const tokens = parseResult.tokens;
+  const parseError = parseResult.error;
   const gaps = useMemo(
     () => tokens.filter((t) => t.type === "gap") as Extract<Token, { type: "gap" }>[],
     [tokens]
