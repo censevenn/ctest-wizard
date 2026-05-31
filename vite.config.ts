@@ -2,20 +2,18 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  base: "/ctest-wizard/", // Фиксируем базовый путь, чтобы не было 404
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
-    },
-  },
+  // Указываем правильный базовый путь для GitHub Pages
+  base: "/ctest-wizard/",
   plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
+  server: {
+    host: "0.0.0.0",
+    port: 8080,
+  }
 });
