@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Используем бесплатный токен Hugging Face (сохрани его в секретах Supabase как HUGGINGFACE_API_KEY)
+    // Используем бесплатный токен Hugging Face
     const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
     if (!apiKey) throw new Error("HUGGINGFACE_API_KEY ist in den Supabase-Geheimnissen nicht konfiguriert!");
 
@@ -43,7 +43,7 @@ Anforderungen:
 - Länge: 100–150 Wörter, 6–9 zusammenhängende Sätze.
 - Thema: "${topic}".
 - Perfekte Grammatik und Rechtschreibung nach Duden. Sachlich-akademischer Stil, kohärenter Fließtext.
-- Der ERSTE SANKT ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
+- Der ERSTE Satz ist eine vollständige Einleitung (er bleibt im C-Test ungekürzt).
 - Erlaubte Zeichen: deutsche Buchstaben inkl. Umlaute/ß, Ziffern bei Bedarf, sowie die Satzzeichen . , ; : ? ! und Bindestriche in echten zusammengesetzten Wörtern.
 - VERBOTEN: Unterstriche (_), Sternchen (*), Schrägstriche (/), Klammern, Anführungszeichen, Aufzählungen, Listen, Überschriften, Emojis, Punkte hintereinander (…), eckige/geschweifte Klammern, HTML.
 
@@ -57,7 +57,7 @@ Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
 
     const userPrompt = `Schreibe einen C-Test-Text passend zu: "${topic}". Niveau ${requestedLevel}. Liefere nur das JSON-Objekt.`;
 
-    // Мы используем мощную модель Meta Llama 3 через бесплатный Serverless API от Hugging Face
+    // Используем бесплатную модель Meta Llama 3 через Serverless API от Hugging Face
     const gatewayUrl = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct";
 
     const aiResp = await fetch(gatewayUrl, {
@@ -83,17 +83,16 @@ Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    });
+    }
 
     const data = await aiResp.json();
-    // Hugging Face возвращает ответ в массиве объектов: [{ generated_text: "..." }]
     let messageContent = data?.[0]?.generated_text || data?.generated_text;
     
     if (!messageContent) {
       throw new Error("Leere Antwort von der KI-Schnittstelle.");
     }
 
-    // Очищаем от возможных оберток Markdown (```json ... ```), если модель их случайно добавила
+    // Очистка от возможных Markdown-оберток
     messageContent = messageContent.replace(/```json/g, "").replace(/```/g, "").trim();
 
     const parsed = JSON.parse(messageContent);
