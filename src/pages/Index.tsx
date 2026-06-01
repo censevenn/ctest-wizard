@@ -110,6 +110,7 @@ const Index = () => {
         method: "POST",
         headers: {
         "Content-Type": "application/json",
+        "apikey": "sb_publishable_s0JGnNiulnfIqXhmID7CCA_wv-pWE-j",
         "Authorization": "Bearer sb_publishable_s0JGnNiulnfIqXhmID7CCA_wv-pWE-j",
 },
         body: JSON.stringify({ 
