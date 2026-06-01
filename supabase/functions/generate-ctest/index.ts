@@ -2,27 +2,16 @@
 // Returns: { title, level, topic, text }
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://censevenn.github.io",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const TOPICS = [
-  "Wissenschaft und Forschung",
-  "Geschichte Europas",
-  "Klimawandel und Umwelt",
-  "Studium am Studienkolleg in Deutschland",
-  "Digitalisierung und Gesellschaft",
-  "Kunst und Architektur",
-  "Wirtschaft und Globalisierung",
-  "Psychologie und Lernen",
-  "Medizin und Gesundheit",
-  "Migration und Integration",
-  "Erneuerbare Energien",
-  "Philosophie und Ethik",
-];
-
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Обработка OPTIONS для CORS
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     // Используем бесплатный токен Hugging Face
@@ -110,7 +99,11 @@ Antworte IMMER im folgenden JSON-Format ohne Markdown-Codeblöcke:
     );
   } catch (e) {
     console.error("generate-ctest error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+return new Response(JSON.stringify({ ... }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
