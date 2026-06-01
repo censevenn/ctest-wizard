@@ -5,7 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/ctest-wizard/' : '/',
+  // Явно задаем базовый путь для GitHub Pages
+  base: "/ctest-wizard/",
   server: {
     host: "::",
     port: 8080,
@@ -19,15 +20,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Принудительно отключаем ошибки типов на этапе минификации
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    ignoreAnnotations: true,
-  },
-  build: {
-    // Сборка не прервется из-за предупреждений TypeScript
-    typescript: {
-      check: false
-    }
-  } as any
 }));
