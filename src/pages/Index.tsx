@@ -109,9 +109,9 @@ const Index = () => {
       const response = await fetch("https://vartaodfddjkmpkgsuyx.supabase.co/functions/v1/generate-ctest", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ВАШ_SUPABASE_ANON_KEY", // Вставьте сюда ваш anon/public ключ
-        },
+        "Content-Type": "application/json",
+        "Authorization": "Bearer sb_publishable_s0JGnNiulnfIqXhmID7CCA_wv-pWE-j",
+},
         body: JSON.stringify({ 
           level: Math.random() < 0.5 ? "B2" : "C1" 
         }),
