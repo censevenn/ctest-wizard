@@ -5,52 +5,38 @@ on:
     branches:
       - main
 
-# Даем права на деплой через стандартные артефакты страницы
 permissions:
   contents: read
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps: deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      # Используем простой install вместо ci, чтобы проигнорировать конфликты зависимостей Lovable
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      # Собираем проект, жестко игнорируя любые ошибки сборки, TypeScript и предупреждения
-      - name: Build Project
+      - run: npm install --legacy-peer-deps
+      - run: npm run build
         env:
           VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
-        run: |
-          export CI=false
-          npx vite build || true
-
-      # Проверяем, создалась ли папка. Если нет — создаем заглушку, чтобы билд не упал
-      - name: Ensure dist exists
-        run: mkdir -p dist
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
-      - name: Deploy to GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
