@@ -97,72 +97,31 @@ const Index = () => {
     setActiveId("custom");
   };
 
-  // НОВАЯ ПРЯМАЯ ГЕНЕРАЦИЯ ЧЕРЕЗ OPENROUTER
-  const handleGenerateAI = async () => {
+  // НОВАЯ ПРЯМАЯ ГЕНЕРАЦИЯ 
+ const handleGenerateAI = async () => {
     if (generating) return;
     if (!guestCode) return;
-    setGenerating(false);
-
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (!apiKey) {
-      toast.error("API-ключ отсутствует", {
-        description: "Пожалуйста, добавьте VITE_OPENROUTER_API_KEY в секреты репозитория GitHub.",
-      });
-      return;
-    }
 
     setGenerating(true);
     const toastId = toast.loading("KI schreibt einen neuen Text…");
-    const targetLevel = Math.random() < 0.5 ? "B2" : "C1";
 
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch("https://vartaodfddjkmpkgsuyx.supabase.co/functions/v1/generate-ctest", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://github.com/censevenn/ctest-wizard",
-          "X-Title": "C-Test Wizard",
+          "Authorization": "Bearer ВАШ_SUPABASE_ANON_KEY", // Вставьте сюда ваш anon/public ключ
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash", // Быстрая и экономичная модель для генерации текстов
-          messages: [
-            {
-              role: "system",
-              content: `Du bist ein Experte für deutsche Sprache und erstellst C-Test-Texte für das Studienkolleg-Niveau. 
-              Erstelle einen interessanten, zusammenhängenden Text auf Deutsch (Niveau ${targetLevel}).
-              Der Text muss genau ein zusammenhängender Absatz sein (ca. 5-7 Sätze, insgesamt 80-120 Wörter).
-              WICHTIG: Gib das Ergebnis AUSSCHLIESSLICH als valides JSON-Objekt zurück, ohne Markdown-Formatierung (keine \`\`\`json Blöcke).
-              Struktur des JSON:
-              {
-                "title": "Ein knackiger Titel zum Thema",
-                "topic": "Das Hauptthema (z.B. Umwelt, Technologie, Kultur, Medien)",
-                "level": "${targetLevel}",
-                "text": "Der vollständige, normale Text ohne Lücken. Der Text MUSS fehlerfrei sein."
-              }`
-            },
-            {
-              role: "user",
-              content: "Generiere einen neuen Text."
-            }
-          ],
-          response_format: { type: "json_object" }
+        body: JSON.stringify({ 
+          level: Math.random() < 0.5 ? "B2" : "C1" 
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenRouter Fehler: Status ${response.status}`);
+        throw new Error(`Server Fehler: ${response.status}`);
       }
 
-      const result = await response.json();
-      const contentText = result.choices?.[0]?.message?.content;
-      
-      if (!contentText) {
-        throw new Error("Keine Antwort von der KI erhalten");
-      }
-
-      // Парсим JSON из ответа модели
-      const data = JSON.parse(contentText.trim());
+      const data = await response.json();
 
       if (!data.text) {
         throw new Error("Der generierte KI-Text ist leer.");
