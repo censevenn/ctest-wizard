@@ -132,7 +132,17 @@ export function CTestView({
     lastFocusedIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when exercise changes
   }, [text, exerciseId]);
+  
+useEffect(() => {
+  const handleAltKey = () => {
+    // Ваша логика открытия подсказки
+    showSolution();
+  };
+  window.addEventListener("trigger-solution", handleAltKey);
+  return () => window.removeEventListener("trigger-solution", handleAltKey);
+}, []);
 
+  
   useEffect(() => {
     if (!hintActive) return;
     const release = () => setHintActive(false);
