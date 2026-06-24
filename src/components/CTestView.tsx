@@ -381,6 +381,7 @@ export function CTestView({
   const focusedGap = activeGapId ? gaps.find((g) => g.id === activeGapId) : undefined;
 
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
+    if (!resultsChecked && revealedGaps.has(tok.id)) return tok.answer;
     if (!resultsChecked) return answers[tok.id] ?? "";
     if (displayMode === "correct") return tok.answer;
     return answersAtCheck?.[tok.id] ?? answers[tok.id] ?? "";
@@ -389,6 +390,7 @@ export function CTestView({
   const inputClassForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     const status = statuses[tok.id] ?? "idle";
     if (!resultsChecked) {
+      if (revealedGaps.has(tok.id)) return "revealed";
       if (status === "idle") return "";
       return status;
     }
