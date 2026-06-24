@@ -172,22 +172,18 @@ export function CTestView({
   useEffect(() => {
     if (!hintActive) return;
     const release = () => setHintActive(false);
-    const releaseKey = (e: KeyboardEvent) => {
-      if (e.code === "Backquote") setHintActive(false);
-    };
     window.addEventListener("mouseup", release);
     window.addEventListener("touchend", release);
     window.addEventListener("touchcancel", release);
     window.addEventListener("blur", release);
-    window.addEventListener("keyup", releaseKey);
     return () => {
       window.removeEventListener("mouseup", release);
       window.removeEventListener("touchend", release);
       window.removeEventListener("touchcancel", release);
       window.removeEventListener("blur", release);
-      window.removeEventListener("keyup", releaseKey);
     };
   }, [hintActive]);
+
 
   // Open a non-mutating hint tooltip for the focused gap. Stays open until release.
   const openHint = useCallback(
