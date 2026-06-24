@@ -530,7 +530,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> öffnet den vollständigen Tipp.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Alt</kbd> halten zeigt den vollständigen Tipp.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
