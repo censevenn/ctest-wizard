@@ -114,6 +114,17 @@ export function CTestView({
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null);
   const [dictLoading, setDictLoading] = useState(false);
 
+  // Smart Hint: gaps revealed individually via the Alt key while focused.
+  const [revealedGaps, setRevealedGaps] = useState<Set<string>>(new Set());
+  const revealGap = useCallback((gapId: string) => {
+    setRevealedGaps((prev) => {
+      if (prev.has(gapId)) return prev;
+      const next = new Set(prev);
+      next.add(gapId);
+      return next;
+    });
+  }, []);
+
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const lastFocusedIdRef = useRef<string | null>(null);
 
@@ -129,38 +140,25 @@ export function CTestView({
     timer.reset();
     setDictAnchor(null);
     setDictResult(null);
+    setRevealedGaps(new Set());
     lastFocusedIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when exercise changes
   }, [text, exerciseId]);
-  
-useEffect(() => {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Alt") {
-      event.preventDefault(); // Запрещаем Alt открывать меню браузера
-      
-      // Находим текущий активный элемент (где сейчас курсор)
-      const activeElement = document.activeElement as HTMLElement;
-      
-      // Получаем ID поля из атрибута (нам нужно его добавить в input)
-      const gapId = activeElement.getAttribute('data-gap-id');
-      
-      if (gapId) {
-        revealGap(gapId);
-      }
-    }
-  };
 
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, []);
-  
-  // Хранит ID полей, для которых была запрошена подсказка
-const [revealedGaps, setRevealedGaps] = useState<Set<string>>(new Set());
+  // Smart Hint (Alt key): reveal the answer for the currently focused gap only.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Alt") return;
+      event.preventDefault();
+      const active = document.activeElement as HTMLElement | null;
+      const gapId = active?.getAttribute("data-gap-id");
+      if (gapId) revealGap(gapId);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [revealGap]);
 
-// Функция для открытия конкретного поля
-const revealGap = (gapId: string) => {
-  setRevealedGaps(prev => new Set(prev).add(gapId));
-};
+
 
   
   useEffect(() => {
@@ -383,6 +381,7 @@ const revealGap = (gapId: string) => {
   const focusedGap = activeGapId ? gaps.find((g) => g.id === activeGapId) : undefined;
 
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
+    if (!resultsChecked && revealedGaps.has(tok.id)) return tok.answer;
     if (!resultsChecked) return answers[tok.id] ?? "";
     if (displayMode === "correct") return tok.answer;
     return answersAtCheck?.[tok.id] ?? answers[tok.id] ?? "";
@@ -391,6 +390,7 @@ const revealGap = (gapId: string) => {
   const inputClassForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     const status = statuses[tok.id] ?? "idle";
     if (!resultsChecked) {
+      if (revealedGaps.has(tok.id)) return "revealed";
       if (status === "idle") return "";
       return status;
     }
@@ -682,7 +682,7 @@ const revealGap = (gapId: string) => {
                       e.stopPropagation();
                       gapLookup(e);
                     }}
-                    readOnly={readOnlyInputs}
+                    readOnly={readOnlyInputs || revealedGaps.has(tok.id)}
                     aria-label={`Fehlende Buchstaben für ${tok.prefix}… (${tok.original})`}
                     data-gap-id={tok.id}
                     className={cn(
