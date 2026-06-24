@@ -682,7 +682,7 @@ export function CTestView({
                       e.stopPropagation();
                       gapLookup(e);
                     }}
-                    readOnly={readOnlyInputs}
+                    readOnly={readOnlyInputs || revealedGaps.has(tok.id)}
                     aria-label={`Fehlende Buchstaben für ${tok.prefix}… (${tok.original})`}
                     data-gap-id={tok.id}
                     className={cn(
