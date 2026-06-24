@@ -569,7 +569,7 @@ export function CTestView({
             onTouchEnd={() => setHintActive(false)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Halten für vollständige Antwort (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten für vollständige Antwort (Alt)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
