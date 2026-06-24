@@ -201,24 +201,8 @@ export function CTestView({
     [gaps, resultsChecked]
   );
 
-  // Backquote (` / Ё) — hold to reveal the full answer for the focused gap.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== "Backquote") return;
-      e.preventDefault();
-      if (e.repeat) return;
-      const target = e.target as HTMLElement | null;
-      const id =
-        target && target.tagName === "INPUT"
-          ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
-          : focusedId ?? lastFocusedIdRef.current;
-      openHint(id);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [focusedId, openHint]);
+
+
 
   useEffect(() => {
     if (!dictAnchor) {
