@@ -172,22 +172,18 @@ export function CTestView({
   useEffect(() => {
     if (!hintActive) return;
     const release = () => setHintActive(false);
-    const releaseKey = (e: KeyboardEvent) => {
-      if (e.code === "Backquote") setHintActive(false);
-    };
     window.addEventListener("mouseup", release);
     window.addEventListener("touchend", release);
     window.addEventListener("touchcancel", release);
     window.addEventListener("blur", release);
-    window.addEventListener("keyup", releaseKey);
     return () => {
       window.removeEventListener("mouseup", release);
       window.removeEventListener("touchend", release);
       window.removeEventListener("touchcancel", release);
       window.removeEventListener("blur", release);
-      window.removeEventListener("keyup", releaseKey);
     };
   }, [hintActive]);
+
 
   // Open a non-mutating hint tooltip for the focused gap. Stays open until release.
   const openHint = useCallback(
@@ -205,24 +201,8 @@ export function CTestView({
     [gaps, resultsChecked]
   );
 
-  // Backquote (` / Ё) — hold to reveal the full answer for the focused gap.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== "Backquote") return;
-      e.preventDefault();
-      if (e.repeat) return;
-      const target = e.target as HTMLElement | null;
-      const id =
-        target && target.tagName === "INPUT"
-          ? (target.getAttribute("data-gap-id") ?? focusedId ?? lastFocusedIdRef.current)
-          : focusedId ?? lastFocusedIdRef.current;
-      openHint(id);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [focusedId, openHint]);
+
+
 
   useEffect(() => {
     if (!dictAnchor) {
@@ -550,7 +530,7 @@ export function CTestView({
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Fülle die fehlenden Buchstaben jedes zweiten Wortes ein. Doppelklick oder langes Drücken
-            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">`</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Ё</kbd> öffnet den vollständigen Tipp.
+            auf ein Wort öffnet das Wörterbuch. <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">Alt</kbd> halten zeigt den vollständigen Tipp.
           </p>
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
             <input
@@ -589,7 +569,7 @@ export function CTestView({
             onTouchEnd={() => setHintActive(false)}
             disabled={!focusedGap || resultsChecked}
             className="gap-2 select-none"
-            title={focusedGap ? "Halten für vollständige Antwort (` / Ё)" : "Erst eine Lücke anklicken"}
+            title={focusedGap ? "Halten für vollständige Antwort (Alt)" : "Erst eine Lücke anklicken"}
           >
             <Lightbulb className="h-4 w-4" />
             Tipp
