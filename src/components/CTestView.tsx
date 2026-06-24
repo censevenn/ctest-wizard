@@ -114,16 +114,13 @@ export function CTestView({
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null);
   const [dictLoading, setDictLoading] = useState(false);
 
-  // Smart Hint: gaps revealed individually via the Alt key while focused.
-  const [revealedGaps, setRevealedGaps] = useState<Set<string>>(new Set());
-  const revealGap = useCallback((gapId: string) => {
-    setRevealedGaps((prev) => {
-      if (prev.has(gapId)) return prev;
-      const next = new Set(prev);
-      next.add(gapId);
-      return next;
-    });
-  }, []);
+  // Smart Hint: while Alt is held, show a floating tooltip with the correct
+  // answer for the currently focused gap. Does NOT mutate input or readOnly.
+  const [activeHintId, setActiveHintId] = useState<string | null>(null);
+
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const lastFocusedIdRef = useRef<string | null>(null);
+
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const lastFocusedIdRef = useRef<string | null>(null);
