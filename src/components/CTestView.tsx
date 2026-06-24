@@ -134,13 +134,33 @@ export function CTestView({
   }, [text, exerciseId]);
   
 useEffect(() => {
-  const handleAltKey = () => {
-    // Ваша логика открытия подсказки
-    showSolution();
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Alt") {
+      event.preventDefault(); // Запрещаем Alt открывать меню браузера
+      
+      // Находим текущий активный элемент (где сейчас курсор)
+      const activeElement = document.activeElement as HTMLElement;
+      
+      // Получаем ID поля из атрибута (нам нужно его добавить в input)
+      const gapId = activeElement.getAttribute('data-gap-id');
+      
+      if (gapId) {
+        revealGap(gapId);
+      }
+    }
   };
-  window.addEventListener("trigger-solution", handleAltKey);
-  return () => window.removeEventListener("trigger-solution", handleAltKey);
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
 }, []);
+  
+  // Хранит ID полей, для которых была запрошена подсказка
+const [revealedGaps, setRevealedGaps] = useState<Set<string>>(new Set());
+
+// Функция для открытия конкретного поля
+const revealGap = (gapId: string) => {
+  setRevealedGaps(prev => new Set(prev).add(gapId));
+};
 
   
   useEffect(() => {
