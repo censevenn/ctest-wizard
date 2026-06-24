@@ -114,16 +114,9 @@ export function CTestView({
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null);
   const [dictLoading, setDictLoading] = useState(false);
 
-  // Smart Hint: gaps revealed individually via the Alt key while focused.
-  const [revealedGaps, setRevealedGaps] = useState<Set<string>>(new Set());
-  const revealGap = useCallback((gapId: string) => {
-    setRevealedGaps((prev) => {
-      if (prev.has(gapId)) return prev;
-      const next = new Set(prev);
-      next.add(gapId);
-      return next;
-    });
-  }, []);
+  // Smart Hint: while Alt is held, show a floating tooltip with the correct
+  // answer for the currently focused gap. Does NOT mutate input or readOnly.
+  const [activeHintId, setActiveHintId] = useState<string | null>(null);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const lastFocusedIdRef = useRef<string | null>(null);
@@ -140,23 +133,38 @@ export function CTestView({
     timer.reset();
     setDictAnchor(null);
     setDictResult(null);
-    setRevealedGaps(new Set());
+    setActiveHintId(null);
     lastFocusedIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when exercise changes
   }, [text, exerciseId]);
 
-  // Smart Hint (Alt key): reveal the answer for the currently focused gap only.
+  // Smart Hint (Alt key): hold Alt while focused on a gap to show a tooltip
+  // with the correct answer. Release Alt to hide it. Input stays editable.
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Alt") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Alt" || event.repeat) return;
       event.preventDefault();
       const active = document.activeElement as HTMLElement | null;
       const gapId = active?.getAttribute("data-gap-id");
-      if (gapId) revealGap(gapId);
+      if (gapId) setActiveHintId(gapId);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [revealGap]);
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== "Alt") return;
+      event.preventDefault();
+      setActiveHintId(null);
+    };
+    const onBlur = () => setActiveHintId(null);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
+
 
 
 
@@ -381,7 +389,6 @@ export function CTestView({
   const focusedGap = activeGapId ? gaps.find((g) => g.id === activeGapId) : undefined;
 
   const inputValueForGap = (tok: Extract<Token, { type: "gap" }>): string => {
-    if (!resultsChecked && revealedGaps.has(tok.id)) return tok.answer;
     if (!resultsChecked) return answers[tok.id] ?? "";
     if (displayMode === "correct") return tok.answer;
     return answersAtCheck?.[tok.id] ?? answers[tok.id] ?? "";
@@ -390,10 +397,10 @@ export function CTestView({
   const inputClassForGap = (tok: Extract<Token, { type: "gap" }>): string => {
     const status = statuses[tok.id] ?? "idle";
     if (!resultsChecked) {
-      if (revealedGaps.has(tok.id)) return "revealed";
       if (status === "idle") return "";
       return status;
     }
+
 
     if (displayMode === "correct") {
       if (status === "revealed") return "revealed";
@@ -648,7 +655,7 @@ export function CTestView({
           }
           const value = inputValueForGap(tok);
           const widthCh = tok.answer.length;
-          const showHint = hintActive && focusedId === tok.id && !resultsChecked;
+          const showHint = ((hintActive && focusedId === tok.id) || activeHintId === tok.id) && !resultsChecked;
           const isFlashing = flashId === tok.id;
           const status = statuses[tok.id];
           const showExplain = resultsChecked && status === "incorrect";
@@ -682,7 +689,7 @@ export function CTestView({
                       e.stopPropagation();
                       gapLookup(e);
                     }}
-                    readOnly={readOnlyInputs || revealedGaps.has(tok.id)}
+                    readOnly={readOnlyInputs}
                     aria-label={`Fehlende Buchstaben für ${tok.prefix}… (${tok.original})`}
                     data-gap-id={tok.id}
                     className={cn(
